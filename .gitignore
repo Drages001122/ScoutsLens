@@ -35,3 +35,6 @@ Thumbs.db
 build/
 dist/
 *.egg-info/
+
+# tmp files
+tmp/
