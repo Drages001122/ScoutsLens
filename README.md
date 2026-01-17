@@ -1,4 +1,4 @@
-# Scout's Lens - NBA 球员阵容管理工具
+# Scout's Lens
 
 ## 游戏规则
 
