@@ -5,8 +5,7 @@ from datetime import datetime
 
 # 导入拆分的模块
 from utils.constants import SALARY_LIMIT
-from utils.data_utils import load_players_data, calculate_total_salary, get_team_id, get_games_by_date, get_player_game_stats
-from utils.scoring_utils import calculate_player_score, calculate_weighted_score
+from utils.data_utils import load_players_data, calculate_total_salary
 from utils.lineup_utils import check_lineup_requirements
 
 # 设置页面标题和布局
@@ -27,22 +26,14 @@ def main():
         st.session_state.bench = pd.DataFrame()
     if 'current_page' not in st.session_state:
         st.session_state.current_page = 'main'
-    
-    # 侧边栏顶部：查看结果/返回按钮
-    if st.session_state.current_page == 'main':
-        if st.sidebar.button("📊 查看结果", use_container_width=True):
-            st.session_state.current_page = 'results'
-            st.rerun()
-    else:
-        if st.sidebar.button("⬅️ 返回", use_container_width=True):
-            st.session_state.current_page = 'main'
-            st.rerun()
-    
+
+
+
     # 加载数据
     df = load_players_data()
     if df.empty:
         return
-    
+
     # 主页面
     if st.session_state.current_page == 'main':
         st.title("🏀 Scout's Lens")
@@ -402,176 +393,6 @@ def main():
                     st.info("💡 提示：点击上方的展开面板查看具体的限制条件详情")
         else:
             st.info("请先选择球员组成阵容")
-    
-    # 结果页面
-    elif st.session_state.current_page == 'results':
-        st.title("📊 查看结果")
-        
-        # 文件上传组件
-        uploaded_file = st.file_uploader("上传阵容CSV文件", type="csv")
-        
-        if uploaded_file is not None:
-            # 解析CSV文件
-            try:
-                lineup_df = pd.read_csv(uploaded_file)
-                st.success("文件上传成功！")
-                
-                # 显示上传的阵容
-                st.subheader("上传的阵容")
-                st.dataframe(lineup_df)
-                
-                # 提取文件名中的日期
-                file_name = uploaded_file.name
-                import re
-                date_match = re.search(r'\d{8}', file_name)
-                
-                if date_match:
-                    file_date = date_match.group()
-                    # 转换为日期对象
-                    game_date = datetime.strptime(file_date, "%Y%m%d")
-                    # 美国时间比文件名日期减一天
-                    game_date = game_date - pd.Timedelta(days=1)
-                    game_date_str = game_date.strftime("%Y-%m-%d")
-                    
-                    st.write(f"提取的比赛日期（美国时间）: {game_date_str}")
-                    
-                    # 开始查询比赛数据
-                    st.info("正在查询比赛数据...")
-                    
-                    # 获取球队名称
-                    if not lineup_df.empty:
-                        team_name = lineup_df['team_name'].iloc[0]
-                        st.write(f"球队: {team_name}")
-                        
-                        # 查询比赛数据
-                        games = get_games_by_date(game_date_str)
-                        
-                        if not games.empty:
-                            # 筛选出该球队的比赛
-                            team_games = games[games['TEAM_NAME'].str.contains(team_name[:2])]
-                            
-                            if not team_games.empty:
-                                # 获取比赛结果
-                                game = team_games.iloc[0]
-                                team_won = game['WL'] == 'W'
-                                
-                                st.write(f"比赛结果: {'获胜' if team_won else '落败'}")
-                                st.write(f"对手: {game['MATCHUP'].split(' ')[2]}")
-                                st.write(f"比分: {game['PTS']} - {game['PLUS_MINUS'] + game['PTS']}")
-                                
-                                # 计算每个球员的评分
-                                st.subheader("球员评分")
-                                
-                                players_scores = []
-                                results = []
-                                
-                                for _, player in lineup_df.iterrows():
-                                    player_id = player['player_id']
-                                    player_name = player['full_name']
-                                    role = player['角色']
-                                    
-                                    # 查询球员比赛数据
-                                    player_stats = get_player_game_stats(player_id, game_date_str)
-                                    
-                                    if not player_stats.empty:
-                                        # 计算评分
-                                        score = calculate_player_score(player_stats.to_dict('list'), team_won)
-                                        
-                                        # 获取比赛数据
-                                        mp = player_stats['MIN'].iloc[0]
-                                        fg3m = player_stats['FG3M'].iloc[0]
-                                        fgm = player_stats['FGM'].iloc[0]
-                                        fga = player_stats['FGA'].iloc[0]
-                                        ftm = player_stats['FTM'].iloc[0]
-                                        fta = player_stats['FTA'].iloc[0]
-                                        reb = player_stats['REB'].iloc[0]
-                                        ast = player_stats['AST'].iloc[0]
-                                        stl = player_stats['STL'].iloc[0]
-                                        blk = player_stats['BLK'].iloc[0]
-                                        tov = player_stats['TOV'].iloc[0]
-                                        pf = player_stats['PF'].iloc[0]
-                                        pts = player_stats['PTS'].iloc[0]
-                                        
-                                        results.append({
-                                            '球员': player_name,
-                                            '角色': role,
-                                            '上场时间': mp,
-                                            '三分命中': fg3m,
-                                            '投篮命中': fgm,
-                                            '投篮出手': fga,
-                                            '罚球命中': ftm,
-                                            '罚球出手': fta,
-                                            '篮板': reb,
-                                            '助攻': ast,
-                                            '抢断': stl,
-                                            '盖帽': blk,
-                                            '失误': tov,
-                                            '犯规': pf,
-                                            '得分': pts,
-                                            '评分': score
-                                        })
-                                        
-                                        players_scores.append({
-                                            'name': player_name,
-                                            'role': role,
-                                            'score': score
-                                        })
-                                    else:
-                                        # 球员未上场
-                                        score = 0
-                                        results.append({
-                                            '球员': player_name,
-                                            '角色': role,
-                                            '上场时间': 0,
-                                            '三分命中': 0,
-                                            '投篮命中': 0,
-                                            '投篮出手': 0,
-                                            '罚球命中': 0,
-                                            '罚球出手': 0,
-                                            '篮板': 0,
-                                            '助攻': 0,
-                                            '抢断': 0,
-                                            '盖帽': 0,
-                                            '失误': 0,
-                                            '犯规': 0,
-                                            '得分': 0,
-                                            '评分': score
-                                        })
-                                        
-                                        players_scores.append({
-                                            'name': player_name,
-                                            'role': role,
-                                            'score': score
-                                        })
-                                
-                                # 显示球员数据和评分
-                                results_df = pd.DataFrame(results)
-                                st.dataframe(results_df)
-                                
-                                # 计算加权总分
-                                weighted_score = calculate_weighted_score(players_scores)
-                                
-                                st.subheader("阵容评分")
-                                st.metric("加权总分", weighted_score)
-                                
-                                # 显示评分详情
-                                st.subheader("评分详情")
-                                for player in players_scores:
-                                    weight = 2 if player['role'] == '首发' else 1
-                                    st.write(f"{player['name']} ({player['role']}): {player['score']} × {weight} = {player['score'] * weight}")
-                            else:
-                                st.error(f"未找到 {team_name} 在 {game_date_str} 的比赛数据")
-                        else:
-                            st.error(f"未找到 {game_date_str} 的比赛数据")
-                    else:
-                        st.error("阵容文件为空")
-                else:
-                    st.error("无法从文件名中提取日期，请确保文件名包含8位数字的日期格式（如20260116）")
-                    
-            except Exception as e:
-                st.error(f"文件解析失败: {e}")
-        else:
-            st.info("请上传阵容CSV文件以查看结果")
 
 
 if __name__ == "__main__":
