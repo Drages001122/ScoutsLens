@@ -166,14 +166,48 @@ def main():
             selected_teams = st.sidebar.multiselect("球队", teams, default=[])
 
             # 薪资范围过滤
-            min_salary, max_salary = int(df["salary"].min()), int(df["salary"].max())
-            salary_range = st.sidebar.slider(
-                "薪资范围 ($)",
-                min_salary,
-                max_salary,
-                (min_salary, max_salary),
-                step=1000000,
-            )
+            min_salary = 0
+            max_salary = 60000000  # 设置最大薪资上限为6千万美元
+            
+            # 手动输入薪资范围（单位：千万美元）
+            st.sidebar.subheader("手动输入薪资范围")
+            col1, col2 = st.sidebar.columns(2)
+            
+            # 转换为千万美元单位显示
+            min_salary_million = min_salary / 10000000
+            max_salary_million = max_salary / 10000000
+            
+            with col1:
+                manual_min_million = st.number_input(
+                    "最小薪资 (千万美元)",
+                    min_value=min_salary_million,
+                    max_value=max_salary_million,
+                    value=min_salary_million,
+                    step=0.1,
+                    format="%.1f"
+                )
+            with col2:
+                manual_max_million = st.number_input(
+                    "最大薪资 (千万美元)",
+                    min_value=min_salary_million,
+                    max_value=max_salary_million,
+                    value=max_salary_million,
+                    step=0.1,
+                    format="%.1f"
+                )
+
+            # 转换回美元单位用于过滤
+            manual_min = int(manual_min_million * 10000000)
+            manual_max = int(manual_max_million * 10000000)
+
+            # 确保手动输入的值有效
+            if manual_min > manual_max:
+                st.sidebar.error("最小薪资不能大于最大薪资")
+                # 重置为默认值
+                manual_min, manual_max = min_salary, max_salary
+
+            # 设置薪资范围
+            salary_range = (manual_min, manual_max)
 
             # 排序选项
             sort_by = st.sidebar.selectbox(
