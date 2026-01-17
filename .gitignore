@@ -12,11 +12,6 @@ __pycache__/
 *.swp
 *.swo
 
-# Data files
-*.csv
-*.xlsx
-*.json
-
 # OS
 .DS_Store
 Thumbs.db
