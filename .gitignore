@@ -33,3 +33,6 @@ dist/
 
 # tmp files
 tmp/
+
+# cache files
+player_stats_data/
