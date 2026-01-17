@@ -606,7 +606,7 @@ def main():
                 
                 # 读取球员信息文件
                 player_info_df = pd.read_csv(
-                    "d:\PycharmProjects\ScoutsLens\player_information.csv",
+                    "player_information.csv",
                     encoding="utf-8-sig",
                 )
                 # 确保薪资是数字类型
@@ -825,7 +825,7 @@ def main():
 
                         # 读取球员信息文件，创建id到名字、位置、薪资的映射
                         player_info_df = pd.read_csv(
-                            "d:\PycharmProjects\ScoutsLens\player_information.csv",
+                            "player_information.csv",
                             encoding="utf-8-sig",
                         )
                         # 确保薪资是数字类型
@@ -1020,7 +1020,7 @@ def main():
                         try:
                             # 构建命令
                             import os
-                            script_path = r"d:\PycharmProjects\ScoutsLens\nba_game_stats.py"
+                            script_path = "nba_game_stats.py"
                             command = f"python {script_path}"
 
                             # 修改脚本中的TARGET_DATE
@@ -1047,7 +1047,7 @@ def main():
                                 shell=True,
                                 capture_output=True,
                                 text=True,
-                                cwd=r"d:\PycharmProjects\ScoutsLens",
+                                cwd=".",
                             )
 
                             # 不显示运行结果，只在有错误时记录
