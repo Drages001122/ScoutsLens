@@ -787,251 +787,475 @@ def main():
             # 转换为字符串格式
             target_date_str = api_date.strftime("%Y-%m-%d")
 
+            # 检查是否需要使用缓存
+            def should_use_cache():
+                import os
+                import datetime
+                # 检查缓存文件是否存在
+                csv_file = f"player_stats_data/nba_player_stats_{target_date_str.replace('-', '_')}.csv"
+                if not os.path.exists(csv_file):
+                    return False
+                
+                # 获取当前北京时间
+                now = datetime.datetime.now()
+                current_hour = now.hour
+                
+                # 检查是否在北京时间0:00~16:00之间
+                if 0 <= current_hour < 16:
+                    # 检查查询日期是否是当天的比赛
+                    today = datetime.datetime.now().date()
+                    if selected_date == today:
+                        return False
+                
+                return True
+
             # 运行nba_game_stats.py脚本获取数据
             if st.button("获取数据"):
                 # 显示用户选择的原始日期
                 user_date_str = selected_date.strftime("%Y-%m-%d")
-                with st.spinner(f"正在获取 {user_date_str} 的比赛数据..."):
+                
+                # 检查缓存
+                csv_file = f"player_stats_data/nba_player_stats_{target_date_str.replace('-', '_')}.csv"
+                if should_use_cache():
+                    st.success(f"使用缓存数据: {user_date_str}")
+                    # 直接读取缓存文件
                     try:
-                        # 构建命令
-                        script_path = (
-                            "d:\\PycharmProjects\\ScoutsLens\\nba_game_stats.py"
+                        # 导入常量
+                        from utils.constants import TEAM_TRANSLATION, POSITION_TRANSLATION
+
+                        # 读取球员信息文件，创建id到名字、位置、薪资的映射
+                        player_info_df = pd.read_csv(
+                            "d:\PycharmProjects\ScoutsLens\player_information.csv",
+                            encoding="utf-8-sig",
                         )
-                        command = f"python {script_path}"
-
-                        # 修改脚本中的TARGET_DATE
-                        with open(script_path, "r", encoding="utf-8") as f:
-                            script_content = f.read()
-
-                        # 更新TARGET_DATE
-                        import re
-
-                        # 使用正则表达式更安全地替换TARGET_DATE
-                        new_script_content = re.sub(
-                            r"TARGET_DATE = '.*'",
-                            f"TARGET_DATE = '{target_date_str}'",
-                            script_content,
+                        # 确保薪资是数字类型
+                        player_info_df["salary"] = pd.to_numeric(player_info_df["salary"], errors='coerce').fillna(0).astype(int)
+                        player_id_to_name = dict(
+                            zip(
+                                player_info_df["player_id"],
+                                player_info_df["full_name"],
+                            )
                         )
-
-                        # 写回文件
-                        with open(script_path, "w", encoding="utf-8") as f:
-                            f.write(new_script_content)
-
-                        # 运行脚本
-                        result = subprocess.run(
-                            command,
-                            shell=True,
-                            capture_output=True,
-                            text=True,
-                            cwd="d:\PycharmProjects\ScoutsLens",
+                        player_id_to_position = dict(
+                            zip(
+                                player_info_df["player_id"],
+                                player_info_df["position"],
+                            )
+                        )
+                        player_id_to_salary = dict(
+                            zip(
+                                player_info_df["player_id"],
+                                player_info_df["salary"],
+                            )
                         )
 
-                        # 不显示运行结果，只在有错误时记录
+                        # 使用常量中的球队名到中文名的映射
+                        team_name_mapping = TEAM_TRANSLATION
 
-                        # 检查是否生成了CSV文件
-                        csv_file = (
-                            f"player_stats_data/nba_player_stats_{target_date_str.replace('-', '_')}.csv"
+                        # 读取数据
+                        player_stats_df = pd.read_csv(
+                            csv_file, encoding="utf-8-sig"
                         )
-                        if os.path.exists(csv_file):
-                            # 导入常量
-                            from utils.constants import TEAM_TRANSLATION, POSITION_TRANSLATION
 
-                            # 读取球员信息文件，创建id到名字、位置、薪资的映射
-                            player_info_df = pd.read_csv(
-                                "d:\PycharmProjects\ScoutsLens\player_information.csv",
-                                encoding="utf-8-sig",
-                            )
-                            # 确保薪资是数字类型
-                            player_info_df["salary"] = pd.to_numeric(player_info_df["salary"], errors='coerce').fillna(0).astype(int)
-                            player_id_to_name = dict(
-                                zip(
-                                    player_info_df["player_id"],
-                                    player_info_df["full_name"],
-                                )
-                            )
-                            player_id_to_position = dict(
-                                zip(
-                                    player_info_df["player_id"],
-                                    player_info_df["position"],
-                                )
-                            )
-                            player_id_to_salary = dict(
-                                zip(
-                                    player_info_df["player_id"],
-                                    player_info_df["salary"],
-                                )
-                            )
+                        # 将球员id替换为球员名
+                        player_stats_df["球员名"] = player_stats_df["球员id"].map(
+                            player_id_to_name
+                        )
 
-                            # 使用常量中的球队名到中文名的映射
-                            team_name_mapping = TEAM_TRANSLATION
+                        # 添加位置和薪资字段
+                        player_stats_df["位置"] = player_stats_df["球员id"].map(
+                            player_id_to_position
+                        )
+                        player_stats_df["薪资"] = player_stats_df["球员id"].map(
+                            player_id_to_salary
+                        )
+                        
+                        # 确保薪资是数字类型
+                        player_stats_df["薪资"] = pd.to_numeric(player_stats_df["薪资"], errors='coerce').fillna(0).astype(int)
+                        
+                        # 将位置转换为中文
+                        def translate_position(pos):
+                            if pd.isna(pos):
+                                return pos
+                            # 处理复合位置，如"Guard-Forward"
+                            translated_parts = []
+                            for part in str(pos).split('-'):
+                                translated_parts.append(POSITION_TRANSLATION.get(part.strip(), part.strip()))
+                            return '-'.join(translated_parts)
+                        
+                        player_stats_df["位置"] = player_stats_df["位置"].apply(translate_position)
 
-                            # 读取数据
-                            player_stats_df = pd.read_csv(
-                                csv_file, encoding="utf-8-sig"
-                            )
+                        # 将球队名替换为中文名
+                        player_stats_df["球队名"] = player_stats_df["球队名"].map(
+                            team_name_mapping
+                        )
 
-                            # 将球员id替换为球员名
-                            player_stats_df["球员名"] = player_stats_df["球员id"].map(
-                                player_id_to_name
-                            )
+                        # 移除原始球员id列
+                        player_stats_df = player_stats_df.drop("球员id", axis=1)
 
-                            # 添加位置和薪资字段
-                            player_stats_df["位置"] = player_stats_df["球员id"].map(
-                                player_id_to_position
-                            )
-                            player_stats_df["薪资"] = player_stats_df["球员id"].map(
-                                player_id_to_salary
-                            )
-                            
-                            # 确保薪资是数字类型
-                            player_stats_df["薪资"] = pd.to_numeric(player_stats_df["薪资"], errors='coerce').fillna(0).astype(int)
-                            
-                            # 将位置转换为中文
-                            def translate_position(pos):
-                                if pd.isna(pos):
-                                    return pos
-                                # 处理复合位置，如"Guard-Forward"
-                                translated_parts = []
-                                for part in str(pos).split('-'):
-                                    translated_parts.append(POSITION_TRANSLATION.get(part.strip(), part.strip()))
-                                return '-'.join(translated_parts)
-                            
-                            player_stats_df["位置"] = player_stats_df["位置"].apply(translate_position)
+                        # 重新排列列，将球员名放在第一位
+                        cols = ["球员名"] + [
+                            col
+                            for col in player_stats_df.columns
+                            if col != "球员名"
+                        ]
+                        player_stats_df = player_stats_df[cols]
 
-                            # 将球队名替换为中文名
-                            player_stats_df["球队名"] = player_stats_df["球队名"].map(
-                                team_name_mapping
+                        # 计算得分
+                        player_stats_df["得分"] = (
+                            3 * player_stats_df["三分命中数"]
+                            + 2 * player_stats_df["两分命中数"]
+                            + 1 * player_stats_df["罚球命中数"]
+                        )
+
+                        # 计算篮板（进攻篮板+防守篮板）
+                        player_stats_df["篮板"] = (
+                            player_stats_df["进攻篮板"]
+                            + player_stats_df["防守篮板"]
+                        )
+
+                        # 将"本场比赛是否获胜"重命名为"获胜"
+                        if "本场比赛是否获胜" in player_stats_df.columns:
+                            player_stats_df = player_stats_df.rename(
+                                columns={"本场比赛是否获胜": "获胜"}
                             )
 
-                            # 移除原始球员id列
-                            player_stats_df = player_stats_df.drop("球员id", axis=1)
+                        # 调整字段顺序
+                        desired_cols = [
+                            "球员名",
+                            "球队名",
+                            "位置",
+                            "薪资",
+                            "评分",
+                            "上场时间",
+                            "得分",
+                            "助攻",
+                            "篮板",
+                            "抢断",
+                            "盖帽",
+                            "失误",
+                            "犯规",
+                            "三分命中数",
+                            "三分出手数",
+                            "两分命中数",
+                            "两分出手数",
+                            "罚球命中数",
+                            "罚球出手数",
+                        ]
 
-                            # 重新排列列，将球员名放在第一位
-                            cols = ["球员名"] + [
-                                col
-                                for col in player_stats_df.columns
-                                if col != "球员名"
-                            ]
-                            player_stats_df = player_stats_df[cols]
+                        # 确保所有列都存在
+                        existing_cols = [
+                            col
+                            for col in desired_cols
+                            if col in player_stats_df.columns
+                        ]
+                        # 添加剩余的列（如果有）
+                        remaining_cols = [
+                            col
+                            for col in player_stats_df.columns
+                            if col not in existing_cols and col != "获胜"
+                        ]
+                        # 构建最终列顺序：基础列 + 剩余列 + 获胜列（如果存在）
+                        final_cols = existing_cols + remaining_cols
+                        if "获胜" in player_stats_df.columns:
+                            final_cols.append("获胜")
 
-                            # 计算得分
-                            player_stats_df["得分"] = (
-                                3 * player_stats_df["三分命中数"]
-                                + 2 * player_stats_df["两分命中数"]
-                                + 1 * player_stats_df["罚球命中数"]
-                            )
+                        player_stats_df = player_stats_df[final_cols]
 
-                            # 计算篮板（进攻篮板+防守篮板）
-                            player_stats_df["篮板"] = (
-                                player_stats_df["进攻篮板"]
-                                + player_stats_df["防守篮板"]
-                            )
+                        # 添加评分列
+                        player_stats_df["评分"] = player_stats_df.apply(
+                            calculate_per, axis=1
+                        )
 
-                            # 将"本场比赛是否获胜"重命名为"获胜"
-                            if "本场比赛是否获胜" in player_stats_df.columns:
-                                player_stats_df = player_stats_df.rename(
-                                    columns={"本场比赛是否获胜": "获胜"}
-                                )
+                        # 按评分排序
+                        player_stats_df = player_stats_df.sort_values(
+                            by="评分", ascending=False
+                        )
 
-                            # 调整字段顺序
-                            desired_cols = [
-                                "球员名",
-                                "球队名",
-                                "位置",
-                                "薪资",
-                                "评分",
-                                "上场时间",
-                                "得分",
-                                "助攻",
-                                "篮板",
-                                "抢断",
-                                "盖帽",
-                                "失误",
-                                "犯规",
-                                "三分命中数",
-                                "三分出手数",
-                                "两分命中数",
-                                "两分出手数",
-                                "罚球命中数",
-                                "罚球出手数",
-                            ]
-
-                            # 确保所有列都存在
-                            existing_cols = [
-                                col
-                                for col in desired_cols
-                                if col in player_stats_df.columns
-                            ]
-                            # 添加剩余的列（如果有）
-                            remaining_cols = [
-                                col
-                                for col in player_stats_df.columns
-                                if col not in existing_cols and col != "获胜"
-                            ]
-                            # 构建最终列顺序：基础列 + 剩余列 + 获胜列（如果存在）
-                            final_cols = existing_cols + remaining_cols
-                            if "获胜" in player_stats_df.columns:
-                                final_cols.append("获胜")
-
-                            player_stats_df = player_stats_df[final_cols]
-
-                            # 添加评分列
-                            player_stats_df["评分"] = player_stats_df.apply(
-                                calculate_per, axis=1
-                            )
-
-                            # 按评分排序
-                            player_stats_df = player_stats_df.sort_values(
-                                by="评分", ascending=False
-                            )
-
-                            # 重新排列列，将评分放到最前面，获胜放到最后面
-                            non_rating_cols = [
-                                col
-                                for col in player_stats_df.columns
-                                if col != "评分" and col != "获胜"
-                            ]
-                            if "获胜" in player_stats_df.columns:
-                                cols = ["评分"] + non_rating_cols + ["获胜"]
-                            else:
-                                cols = ["评分"] + non_rating_cols
-                            player_stats_df = player_stats_df[cols]
-
-                            # 显示数据
-                            st.header("📊 球员数据排行榜")
-                            # 手动格式化薪资
-                            def format_salary(salary):
-                                if pd.isna(salary):
-                                    return "$0"
-                                try:
-                                    return f"${int(salary):,}"
-                                except:
-                                    return "$0"
-                            
-                            # 创建一个带有格式化薪资的临时数据框
-                            display_df = player_stats_df.copy()
-                            display_df["薪资"] = display_df["薪资"].apply(format_salary)
-                            
-                            st.dataframe(
-                                display_df,
-                                use_container_width=True,
-                                height=800,
-                                column_config={
-                                    "评分": st.column_config.NumberColumn(
-                                        "评分",
-                                        format="%.1f"
-                                    )
-                                },
-                                hide_index=True
-                            )
+                        # 重新排列列，将评分放到最前面，获胜放到最后面
+                        non_rating_cols = [
+                            col
+                            for col in player_stats_df.columns
+                            if col != "评分" and col != "获胜"
+                        ]
+                        if "获胜" in player_stats_df.columns:
+                            cols = ["评分"] + non_rating_cols + ["获胜"]
                         else:
-                            st.error("数据获取失败，未生成CSV文件")
+                            cols = ["评分"] + non_rating_cols
+                        player_stats_df = player_stats_df[cols]
 
+                        # 显示数据
+                        st.header("📊 球员数据排行榜")
+                        # 手动格式化薪资
+                        def format_salary(salary):
+                            if pd.isna(salary):
+                                return "$0"
+                            try:
+                                return f"${int(salary):,}"
+                            except:
+                                return "$0"
+                        
+                        # 创建一个带有格式化薪资的临时数据框
+                        display_df = player_stats_df.copy()
+                        display_df["薪资"] = display_df["薪资"].apply(format_salary)
+                        
+                        st.dataframe(
+                            display_df,
+                            use_container_width=True,
+                            height=800,
+                            column_config={
+                                "评分": st.column_config.NumberColumn(
+                                    "评分",
+                                    format="%.1f"
+                                )
+                            },
+                            hide_index=True
+                        )
                     except Exception as e:
-                        st.error(f"获取数据时出错: {e}")
+                        st.error(f"读取缓存数据时出错: {e}")
                         import traceback
-
                         traceback.print_exc()
+                else:
+                    with st.spinner(f"正在获取 {user_date_str} 的比赛数据..."):
+                        try:
+                            # 构建命令
+                            import os
+                            script_path = r"d:\PycharmProjects\ScoutsLens\nba_game_stats.py"
+                            command = f"python {script_path}"
+
+                            # 修改脚本中的TARGET_DATE
+                            with open(script_path, "r", encoding="utf-8") as f:
+                                script_content = f.read()
+
+                            # 更新TARGET_DATE
+                            import re
+
+                            # 使用正则表达式更安全地替换TARGET_DATE
+                            new_script_content = re.sub(
+                                r"TARGET_DATE = '.*'",
+                                f"TARGET_DATE = '{target_date_str}'",
+                                script_content,
+                            )
+
+                            # 写回文件
+                            with open(script_path, "w", encoding="utf-8") as f:
+                                f.write(new_script_content)
+
+                            # 运行脚本
+                            result = subprocess.run(
+                                command,
+                                shell=True,
+                                capture_output=True,
+                                text=True,
+                                cwd=r"d:\PycharmProjects\ScoutsLens",
+                            )
+
+                            # 不显示运行结果，只在有错误时记录
+
+                            # 检查是否生成了CSV文件
+                            csv_file = (
+                                f"player_stats_data/nba_player_stats_{target_date_str.replace('-', '_')}.csv"
+                            )
+                            if os.path.exists(csv_file):
+                                # 导入常量
+                                from utils.constants import TEAM_TRANSLATION, POSITION_TRANSLATION
+
+                                # 读取球员信息文件，创建id到名字、位置、薪资的映射
+                                player_info_df = pd.read_csv(
+                                    "player_information.csv",
+                                    encoding="utf-8-sig",
+                                )
+                                # 确保薪资是数字类型
+                                player_info_df["salary"] = pd.to_numeric(player_info_df["salary"], errors='coerce').fillna(0).astype(int)
+                                player_id_to_name = dict(
+                                    zip(
+                                        player_info_df["player_id"],
+                                        player_info_df["full_name"],
+                                    )
+                                )
+                                player_id_to_position = dict(
+                                    zip(
+                                        player_info_df["player_id"],
+                                        player_info_df["position"],
+                                    )
+                                )
+                                player_id_to_salary = dict(
+                                    zip(
+                                        player_info_df["player_id"],
+                                        player_info_df["salary"],
+                                    )
+                                )
+
+                                # 使用常量中的球队名到中文名的映射
+                                team_name_mapping = TEAM_TRANSLATION
+
+                                # 读取数据
+                                player_stats_df = pd.read_csv(
+                                    csv_file, encoding="utf-8-sig"
+                                )
+
+                                # 将球员id替换为球员名
+                                player_stats_df["球员名"] = player_stats_df["球员id"].map(
+                                    player_id_to_name
+                                )
+
+                                # 添加位置和薪资字段
+                                player_stats_df["位置"] = player_stats_df["球员id"].map(
+                                    player_id_to_position
+                                )
+                                player_stats_df["薪资"] = player_stats_df["球员id"].map(
+                                    player_id_to_salary
+                                )
+                                
+                                # 确保薪资是数字类型
+                                player_stats_df["薪资"] = pd.to_numeric(player_stats_df["薪资"], errors='coerce').fillna(0).astype(int)
+                                
+                                # 将位置转换为中文
+                                def translate_position(pos):
+                                    if pd.isna(pos):
+                                        return pos
+                                    # 处理复合位置，如"Guard-Forward"
+                                    translated_parts = []
+                                    for part in str(pos).split('-'):
+                                        translated_parts.append(POSITION_TRANSLATION.get(part.strip(), part.strip()))
+                                    return '-'.join(translated_parts)
+                                
+                                player_stats_df["位置"] = player_stats_df["位置"].apply(translate_position)
+
+                                # 将球队名替换为中文名
+                                player_stats_df["球队名"] = player_stats_df["球队名"].map(
+                                    team_name_mapping
+                                )
+
+                                # 移除原始球员id列
+                                player_stats_df = player_stats_df.drop("球员id", axis=1)
+
+                                # 重新排列列，将球员名放在第一位
+                                cols = ["球员名"] + [
+                                    col
+                                    for col in player_stats_df.columns
+                                    if col != "球员名"
+                                ]
+                                player_stats_df = player_stats_df[cols]
+
+                                # 计算得分
+                                player_stats_df["得分"] = (
+                                    3 * player_stats_df["三分命中数"]
+                                    + 2 * player_stats_df["两分命中数"]
+                                    + 1 * player_stats_df["罚球命中数"]
+                                )
+
+                                # 计算篮板（进攻篮板+防守篮板）
+                                player_stats_df["篮板"] = (
+                                    player_stats_df["进攻篮板"]
+                                    + player_stats_df["防守篮板"]
+                                )
+
+                                # 将"本场比赛是否获胜"重命名为"获胜"
+                                if "本场比赛是否获胜" in player_stats_df.columns:
+                                    player_stats_df = player_stats_df.rename(
+                                        columns={"本场比赛是否获胜": "获胜"}
+                                    )
+
+                                # 调整字段顺序
+                                desired_cols = [
+                                    "球员名",
+                                    "球队名",
+                                    "位置",
+                                    "薪资",
+                                    "评分",
+                                    "上场时间",
+                                    "得分",
+                                    "助攻",
+                                    "篮板",
+                                    "抢断",
+                                    "盖帽",
+                                    "失误",
+                                    "犯规",
+                                    "三分命中数",
+                                    "三分出手数",
+                                    "两分命中数",
+                                    "两分出手数",
+                                    "罚球命中数",
+                                    "罚球出手数",
+                                ]
+
+                                # 确保所有列都存在
+                                existing_cols = [
+                                    col
+                                    for col in desired_cols
+                                    if col in player_stats_df.columns
+                                ]
+                                # 添加剩余的列（如果有）
+                                remaining_cols = [
+                                    col
+                                    for col in player_stats_df.columns
+                                    if col not in existing_cols and col != "获胜"
+                                ]
+                                # 构建最终列顺序：基础列 + 剩余列 + 获胜列（如果存在）
+                                final_cols = existing_cols + remaining_cols
+                                if "获胜" in player_stats_df.columns:
+                                    final_cols.append("获胜")
+
+                                player_stats_df = player_stats_df[final_cols]
+
+                                # 添加评分列
+                                player_stats_df["评分"] = player_stats_df.apply(
+                                    calculate_per, axis=1
+                                )
+
+                                # 按评分排序
+                                player_stats_df = player_stats_df.sort_values(
+                                    by="评分", ascending=False
+                                )
+
+                                # 重新排列列，将评分放到最前面，获胜放到最后面
+                                non_rating_cols = [
+                                    col
+                                    for col in player_stats_df.columns
+                                    if col != "评分" and col != "获胜"
+                                ]
+                                if "获胜" in player_stats_df.columns:
+                                    cols = ["评分"] + non_rating_cols + ["获胜"]
+                                else:
+                                    cols = ["评分"] + non_rating_cols
+                                player_stats_df = player_stats_df[cols]
+
+                                # 显示数据
+                                st.header("📊 球员数据排行榜")
+                                # 手动格式化薪资
+                                def format_salary(salary):
+                                    if pd.isna(salary):
+                                        return "$0"
+                                    try:
+                                        return f"${int(salary):,}"
+                                    except:
+                                        return "$0"
+                                
+                                # 创建一个带有格式化薪资的临时数据框
+                                display_df = player_stats_df.copy()
+                                display_df["薪资"] = display_df["薪资"].apply(format_salary)
+                                
+                                st.dataframe(
+                                    display_df,
+                                    use_container_width=True,
+                                    height=800,
+                                    column_config={
+                                        "评分": st.column_config.NumberColumn(
+                                            "评分",
+                                            format="%.1f"
+                                        )
+                                    },
+                                    hide_index=True
+                                )
+                            else:
+                                st.error("数据获取失败，未生成CSV文件")
+
+                        except Exception as e:
+                            st.error(f"获取数据时出错: {e}")
+                            import traceback
+
+                            traceback.print_exc()
 
 
 if __name__ == "__main__":
