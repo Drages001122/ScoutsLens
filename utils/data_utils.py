@@ -7,7 +7,7 @@ from utils.constants import POSITION_TRANSLATION, TEAM_TRANSLATION, TEAM_ID_MAP
 # 加载球员数据
 def load_players_data():
     try:
-        df = pd.read_csv("球员信息.csv")
+        df = pd.read_csv("player_information.csv")
         # 处理空值，将 NaN 转换为字符串
         df['team_name'] = df['team_name'].fillna('未知')
         df['team_abbr'] = df['team_abbr'].fillna('')
