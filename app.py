@@ -29,6 +29,8 @@ def main():
         st.session_state.current_page = "main"
     if "active_section" not in st.session_state:
         st.session_state.active_section = "阵容选择"
+    if "is_loading" not in st.session_state:
+        st.session_state.is_loading = False
 
     # 侧边栏：板块切换
     st.sidebar.title("🏀 Scout's Lens")
@@ -430,88 +432,94 @@ def main():
             target_date_str = api_date.strftime("%Y-%m-%d")
 
             # 运行nba_game_stats.py脚本获取数据
-            if st.button("获取数据"):
+            if st.button("获取数据", disabled=st.session_state.is_loading):
+                # 设置加载状态为True
+                st.session_state.is_loading = True
                 # 显示用户选择的原始日期
                 user_date_str = selected_date.strftime("%Y-%m-%d")
                 
-                # 检查缓存
-                csv_file = f"player_stats_data/nba_player_stats_{target_date_str.replace('-', '_')}.csv"
-                if os.path.exists(csv_file) and should_use_cache(target_date_str):
-                    st.success(f"使用缓存数据: {user_date_str}")
-                    # 直接读取缓存文件
-                    try:
-                        player_stats_df, error_msg = get_player_stats(target_date_str, user_date_str)
-                        
-                        if not player_stats_df.empty:
-                            # 显示数据
-                            st.header("📊 球员数据排行榜")
-                            
-                            # 创建一个带有格式化薪资的临时数据框
-                            display_df = player_stats_df.copy()
-                            display_df["薪资"] = display_df["薪资"].apply(format_salary)
-                            
-                            st.dataframe(
-                                display_df,
-                                use_container_width=True,
-                                height=800,
-                                column_config={
-                                    "评分": st.column_config.NumberColumn(
-                                        "评分",
-                                        format="%.1f"
-                                    )
-                                },
-                                hide_index=True
-                            )
-                        else:
-                            if error_msg:
-                                st.error(f"读取缓存数据失败: {error_msg}")
-                            else:
-                                st.error("缓存数据为空")
-                    except Exception as e:
-                        st.error(f"读取缓存数据时出错: {e}")
-                        import traceback
-                        traceback.print_exc()
-                else:
-                    with st.spinner(f"正在获取 {user_date_str} 的比赛数据..."):
+                try:
+                    # 检查缓存
+                    csv_file = f"player_stats_data/nba_player_stats_{target_date_str.replace('-', '_')}.csv"
+                    if os.path.exists(csv_file) and should_use_cache(target_date_str):
+                        st.success(f"使用缓存数据: {user_date_str}")
+                        # 直接读取缓存文件
                         try:
-                            # 运行脚本
-                            success, result = run_stats_script(target_date_str)
+                            player_stats_df, error_msg = get_player_stats(target_date_str, user_date_str)
                             
-                            if success:
-                                player_stats_df, error_msg = get_player_stats(target_date_str, user_date_str)
+                            if not player_stats_df.empty:
+                                # 显示数据
+                                st.header("📊 球员数据排行榜")
                                 
-                                if not player_stats_df.empty:
-                                    # 显示数据
-                                    st.header("📊 球员数据排行榜")
-                                    
-                                    # 创建一个带有格式化薪资的临时数据框
-                                    display_df = player_stats_df.copy()
-                                    display_df["薪资"] = display_df["薪资"].apply(format_salary)
-                                    
-                                    st.dataframe(
-                                        display_df,
-                                        use_container_width=True,
-                                        height=800,
-                                        column_config={
-                                            "评分": st.column_config.NumberColumn(
-                                                "评分",
-                                                format="%.1f"
-                                            )
-                                        },
-                                        hide_index=True
-                                    )
-                                else:
-                                    if error_msg:
-                                        st.error(f"获取数据失败: {error_msg}")
-                                    else:
-                                        st.error("获取的数据为空")
+                                # 创建一个带有格式化薪资的临时数据框
+                                display_df = player_stats_df.copy()
+                                display_df["薪资"] = display_df["薪资"].apply(format_salary)
+                                
+                                st.dataframe(
+                                    display_df,
+                                    use_container_width=True,
+                                    height=800,
+                                    column_config={
+                                        "评分": st.column_config.NumberColumn(
+                                            "评分",
+                                            format="%.1f"
+                                        )
+                                    },
+                                    hide_index=True
+                                )
                             else:
-                                st.error(f"数据获取失败: {result}")
-
+                                if error_msg:
+                                    st.error(f"读取缓存数据失败: {error_msg}")
+                                else:
+                                    st.error("缓存数据为空")
                         except Exception as e:
-                            st.error(f"获取数据时出错: {e}")
+                            st.error(f"读取缓存数据时出错: {e}")
                             import traceback
                             traceback.print_exc()
+                    else:
+                        with st.spinner(f"正在获取 {user_date_str} 的比赛数据..."):
+                            try:
+                                # 运行脚本
+                                success, result = run_stats_script(target_date_str)
+                                
+                                if success:
+                                    player_stats_df, error_msg = get_player_stats(target_date_str, user_date_str)
+                                    
+                                    if not player_stats_df.empty:
+                                        # 显示数据
+                                        st.header("📊 球员数据排行榜")
+                                        
+                                        # 创建一个带有格式化薪资的临时数据框
+                                        display_df = player_stats_df.copy()
+                                        display_df["薪资"] = display_df["薪资"].apply(format_salary)
+                                        
+                                        st.dataframe(
+                                            display_df,
+                                            use_container_width=True,
+                                            height=800,
+                                            column_config={
+                                                "评分": st.column_config.NumberColumn(
+                                                    "评分",
+                                                    format="%.1f"
+                                                )
+                                            },
+                                            hide_index=True
+                                        )
+                                    else:
+                                        if error_msg:
+                                            st.error(f"获取数据失败: {error_msg}")
+                                        else:
+                                            st.error("获取的数据为空")
+                                else:
+                                    st.error(f"数据获取失败: {result}")
+
+                            except Exception as e:
+                                st.error(f"获取数据时出错: {e}")
+                                import traceback
+                                traceback.print_exc()
+                finally:
+                    # 无论成功失败，都设置加载状态为False
+                    st.session_state.is_loading = False
 
 
 if __name__ == "__main__":
