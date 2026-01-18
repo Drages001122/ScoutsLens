@@ -2,7 +2,7 @@ import os
 import subprocess
 import re
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from utils.constants import TEAM_TRANSLATION, POSITION_TRANSLATION
 from utils.scoring import calculate_per, calculate_score, calculate_rebounds
 
@@ -21,8 +21,14 @@ def should_use_cache(target_date_str):
     # 检查是否在北京时间0:00~16:00之间
     if 0 <= current_hour < 16:
         # 检查查询日期是否是当天的比赛（通过比较日期字符串）
+        # 注意：target_date_str 是 api_date，即用户选择日期减1天
+        # 所以如果用户选择今天，target_date_str 是昨天，应该视为当天的比赛
         today = datetime.now().date().strftime("%Y-%m-%d")
-        if target_date_str == today:
+        # 计算用户选择的原始日期（api_date + 1天）
+        target_date = datetime.strptime(target_date_str, "%Y-%m-%d").date()
+        user_selected_date = target_date + timedelta(days=1)
+        user_selected_date_str = user_selected_date.strftime("%Y-%m-%d")
+        if user_selected_date_str == today:
             return False
     
     return True
