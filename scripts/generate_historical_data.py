@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 # 定义起始和结束日期
 start_date = datetime(2025, 10, 22)
-end_date = datetime(2025, 12, 30)
+end_date = datetime(2026, 1, 18)
 
 # 脚本路径
 script_path = "scripts/nba_game_stats.py"
