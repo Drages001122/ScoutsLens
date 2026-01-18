@@ -4,7 +4,7 @@ from nba_api.stats.library.parameters import SeasonAll
 from datetime import datetime
 
 # 设置日期
-TARGET_DATE = '2026-01-02'
+TARGET_DATE = '2026-01-17'
 
 def get_games_by_date(date):
     """获取指定日期的所有NBA比赛"""
