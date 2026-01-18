@@ -6,7 +6,7 @@ from utils.constants import TEAM_TRANSLATION, POSITION_TRANSLATION
 def load_players_data():
     """加载球员数据并进行预处理"""
     try:
-        df = pd.read_csv("player_information.csv")
+        df = pd.read_csv("data/player_information.csv")
         # 处理空值，将 NaN 转换为字符串
         df["team_name"] = df["team_name"].fillna("未知")
         df["team_abbr"] = df["team_abbr"].fillna("")

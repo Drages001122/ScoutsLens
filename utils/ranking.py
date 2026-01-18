@@ -4,7 +4,7 @@ import re
 import pandas as pd
 from datetime import datetime
 from utils.constants import TEAM_TRANSLATION, POSITION_TRANSLATION
-from app.utils.scoring import calculate_per, calculate_score, calculate_rebounds
+from utils.scoring import calculate_per, calculate_score, calculate_rebounds
 
 
 def should_use_cache(target_date_str):
@@ -39,11 +39,11 @@ def get_player_stats(target_date_str, user_date_str):
             return pd.DataFrame(), f"数据文件不存在: {csv_file}"
         
         # 读取球员信息文件，创建id到名字、位置、薪资的映射
-        if not os.path.exists("player_information.csv"):
+        if not os.path.exists("data/player_information.csv"):
             return pd.DataFrame(), "球员信息文件不存在"
         
         player_info_df = pd.read_csv(
-            "player_information.csv",
+            "data/player_information.csv",
             encoding="utf-8-sig",
         )
         # 确保薪资是数字类型
@@ -111,14 +111,6 @@ def get_player_stats(target_date_str, user_date_str):
         # 移除原始球员id列
         player_stats_df = player_stats_df.drop("球员id", axis=1)
 
-        # 重新排列列，将球员名放在第一位
-        cols = ["球员名"] + [
-            col
-            for col in player_stats_df.columns
-            if col != "球员名"
-        ]
-        player_stats_df = player_stats_df[cols]
-
         # 计算得分
         player_stats_df["得分"] = (
             3 * player_stats_df["三分命中数"]
@@ -148,17 +140,20 @@ def get_player_stats(target_date_str, user_date_str):
             by="评分", ascending=False
         )
 
-        # 重新排列列，将评分放到最前面，获胜放到最后面
-        non_rating_cols = [
-            col
-            for col in player_stats_df.columns
-            if col != "评分" and col != "获胜"
+        # 重新排列列，与查看结果板块保持一致
+        desired_cols = [
+            "评分", "球员名", "球队名", "位置", "薪资",
+            "上场时间", "得分", "助攻", "篮板", "抢断", "盖帽",
+            "失误", "犯规", "三分命中数", "三分出手数", "两分命中数",
+            "两分出手数", "罚球命中数", "罚球出手数", "获胜"
         ]
-        if "获胜" in player_stats_df.columns:
-            cols = ["评分"] + non_rating_cols + ["获胜"]
-        else:
-            cols = ["评分"] + non_rating_cols
-        player_stats_df = player_stats_df[cols]
+
+        # 确保所有列都存在
+        existing_cols = [
+            col for col in desired_cols if col in player_stats_df.columns
+        ]
+
+        player_stats_df = player_stats_df[existing_cols]
 
         return player_stats_df, None
     except FileNotFoundError as e:
@@ -177,7 +172,7 @@ def run_stats_script(target_date_str):
     """运行统计脚本获取数据"""
     try:
         # 构建命令
-        script_path = "nba_game_stats.py"
+        script_path = "scripts/nba_game_stats.py"
         command = f"python {script_path}"
 
         # 修改脚本中的TARGET_DATE

@@ -6,10 +6,10 @@ import streamlit as st
 
 # 导入拆分的模块
 from utils.constants import SALARY_LIMIT
-from app.utils.data_processor import load_players_data, filter_players, sort_players, get_paged_players, calculate_total_salary, format_salary
-from app.utils.lineup_manager import add_player_to_lineup, move_player_to_starters, move_player_to_bench, remove_player_from_lineup, validate_lineup, prepare_export_data, reset_lineup
-from app.utils.ranking import get_player_stats, run_stats_script, should_use_cache
-from app.utils.result_viewer import load_lineup_data, display_lineup_results
+from utils.data_processor import load_players_data, filter_players, sort_players, get_paged_players, calculate_total_salary, format_salary
+from utils.lineup_manager import add_player_to_lineup, move_player_to_starters, move_player_to_bench, remove_player_from_lineup, validate_lineup, prepare_export_data, reset_lineup
+from utils.ranking import get_player_stats, run_stats_script, should_use_cache
+from utils.result_viewer import load_lineup_data, display_lineup_results
 
 # 设置页面标题和布局
 st.set_page_config(

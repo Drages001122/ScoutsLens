@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 import streamlit as st
-from app.utils.scoring import calculate_per, calculate_score, calculate_rebounds, calculate_weighted_score
-from app.utils.data_processor import format_salary
+from utils.scoring import calculate_per, calculate_score, calculate_rebounds, calculate_weighted_score
+from utils.data_processor import format_salary
 
 
 def load_lineup_data(uploaded_file):
@@ -101,9 +101,9 @@ def display_lineup_results(lineup_df):
             # 计算篮板
             merged_df["篮板"] = merged_df.apply(calculate_rebounds, axis=1)
             
-            # 调整字段顺序，与排行榜保持一致
+            # 调整字段顺序，将评分设置为第一列
             desired_cols = [
-                "full_name", "team_name", "position", "salary", "评分",
+                "评分", "full_name", "team_name", "position", "salary",
                 "上场时间", "得分", "助攻", "篮板", "抢断", "盖帽",
                 "失误", "犯规", "三分命中数", "三分出手数", "两分命中数",
                 "两分出手数", "罚球命中数", "罚球出手数", "本场比赛是否获胜", "角色"

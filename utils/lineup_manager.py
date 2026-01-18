@@ -25,11 +25,17 @@ def move_player_to_starters(starters, bench, selected_players, player_id):
         return starters, bench
     
     # 从替补移除
-    new_bench = bench[bench["player_id"] != player_id]
-    new_bench = new_bench.reset_index(drop=True)
+    if not bench.empty and "player_id" in bench.columns:
+        new_bench = bench[bench["player_id"] != player_id]
+        new_bench = new_bench.reset_index(drop=True)
+    else:
+        return starters, bench
     
     # 获取球员数据
-    player_data = selected_players[selected_players["player_id"] == player_id]
+    if not selected_players.empty and "player_id" in selected_players.columns:
+        player_data = selected_players[selected_players["player_id"] == player_id]
+    else:
+        return starters, bench
     
     # 添加到首发
     new_starters = pd.concat([starters, player_data])
@@ -41,11 +47,17 @@ def move_player_to_starters(starters, bench, selected_players, player_id):
 def move_player_to_bench(starters, bench, selected_players, player_id):
     """将球员从首发移到替补"""
     # 从首发移除
-    new_starters = starters[starters["player_id"] != player_id]
-    new_starters = new_starters.reset_index(drop=True)
+    if not starters.empty and "player_id" in starters.columns:
+        new_starters = starters[starters["player_id"] != player_id]
+        new_starters = new_starters.reset_index(drop=True)
+    else:
+        return starters, bench
     
     # 获取球员数据
-    player_data = selected_players[selected_players["player_id"] == player_id]
+    if not selected_players.empty and "player_id" in selected_players.columns:
+        player_data = selected_players[selected_players["player_id"] == player_id]
+    else:
+        return starters, bench
     
     # 添加到替补
     new_bench = pd.concat([bench, player_data])
@@ -57,13 +69,22 @@ def move_player_to_bench(starters, bench, selected_players, player_id):
 def remove_player_from_lineup(selected_players, starters, bench, player_id):
     """从阵容中移除球员"""
     # 从替补移除
-    new_bench = bench[bench["player_id"] != player_id]
+    if not bench.empty and "player_id" in bench.columns:
+        new_bench = bench[bench["player_id"] != player_id]
+    else:
+        new_bench = bench
     
     # 从选中球员中移除
-    new_selected_players = selected_players[selected_players["player_id"] != player_id]
+    if not selected_players.empty and "player_id" in selected_players.columns:
+        new_selected_players = selected_players[selected_players["player_id"] != player_id]
+    else:
+        new_selected_players = selected_players
     
     # 从首发移除
-    new_starters = starters[starters["player_id"] != player_id]
+    if not starters.empty and "player_id" in starters.columns:
+        new_starters = starters[starters["player_id"] != player_id]
+    else:
+        new_starters = starters
     
     return new_selected_players, new_starters, new_bench
 
