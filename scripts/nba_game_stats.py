@@ -1,13 +1,13 @@
 import pandas as pd
 from nba_api.stats.endpoints import leaguegamelog, boxscoresummaryv2, boxscoretraditionalv2
 from nba_api.stats.library.parameters import SeasonAll
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # 设置日期
-TARGET_DATE = '2026-01-17'
+TARGET_DATE = '2025-10-22'
 
 def get_games_by_date(date):
-    """获取指定日期的所有NBA比赛"""
+    """获取指定日期的所有NBA比赛，包括美国时间第二天但北京时间同一天的比赛"""
     # 转换日期格式
     game_date = datetime.strptime(date, '%Y-%m-%d')
     season_year = game_date.year
@@ -27,7 +27,6 @@ def get_games_by_date(date):
         
         # 转换为MM/DD/YYYY格式
         game_date_str = game_date.strftime('%m/%d/%Y')
-        month, day, year = game_date_str.split('/')
         
         # 使用ScoreboardV2获取比赛数据
         scoreboard = scoreboardv2.ScoreboardV2(
@@ -70,6 +69,28 @@ def get_player_stats(game_id):
         home_score = 0
         away_score = 0
         
+        # 获取比赛时间信息
+        game_time_utc = None
+        beijing_game_date = TARGET_DATE
+        
+        # 从第一个数据帧获取比赛时间信息
+        if data_frames:
+            first_df = data_frames[0]
+            if 'gameTimeUTC' in first_df.columns and not first_df.empty:
+                game_time_utc_str = first_df['gameTimeUTC'].iloc[0]
+                try:
+                    # 解析UTC时间
+                    game_time_utc = datetime.fromisoformat(game_time_utc_str.replace('Z', '+00:00'))
+                    # 转换为北京时间（UTC+8）
+                    beijing_time = game_time_utc + timedelta(hours=8)
+                    # 使用北京时间日期
+                    beijing_game_date = beijing_time.strftime('%Y-%m-%d')
+                    print(f"Game UTC time: {game_time_utc_str}")
+                    print(f"Beijing time: {beijing_time.strftime('%Y-%m-%d %H:%M:%S')}")
+                    print(f"Beijing game date: {beijing_game_date}")
+                except Exception as e:
+                    print(f"解析比赛时间失败: {e}")
+        
         # 从球员数据中获取唯一的球队
         teams_in_game = player_stats['teamTricode'].unique()
         print(f"Teams in game: {teams_in_game}")
@@ -95,7 +116,7 @@ def get_player_stats(game_id):
             away_score = score2
         
         # 添加比赛信息到球员数据
-        player_stats['GAME_DATE'] = TARGET_DATE
+        player_stats['GAME_DATE'] = beijing_game_date
         player_stats['HOME_TEAM'] = home_team
         player_stats['AWAY_TEAM'] = away_team
         player_stats['HOME_SCORE'] = home_score
@@ -186,6 +207,8 @@ def main():
     output_dir = 'player_stats_data'
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
+    
+    # 使用TARGET_DATE作为导出文件名的日期，确保与ranking.py中的预期一致
     output_file = f'{output_dir}/nba_player_stats_{TARGET_DATE.replace("-", "_")}.csv'
     formatted_stats.to_csv(output_file, index=False, encoding='utf-8-sig')
     
@@ -195,6 +218,9 @@ def main():
     print(f"涉及比赛数: {len(game_ids)}")
     print(f"导出字段数: {len(formatted_stats.columns)}")
     print(f"字段列表: {list(formatted_stats.columns)}")
+    if 'GAME_DATE' in combined_stats.columns:
+        unique_dates = combined_stats['GAME_DATE'].unique()
+        print(f"比赛日期分布: {unique_dates}")
 
 if __name__ == "__main__":
     main()
