@@ -81,7 +81,7 @@ def calculate_per(row):
             has_playing_time = playing_time.strip() != ""
         else:
             # 处理数值类型（如NaN）
-            has_playing_time = not pd.isna(playing_time)
+            has_playing_time = not pd.isna(playing_time) and playing_time > 0
 
     if has_playing_time:
         per += 2 if game_won else -2

@@ -38,7 +38,7 @@ def filter_players(df, selected_positions, selected_teams, salary_range, selecte
     filtered_df = df.copy()
 
     # 排除已经在阵容中的球员
-    if selected_player_ids is not None:
+    if selected_player_ids is not None and not filtered_df.empty and "player_id" in filtered_df.columns:
         # 检查是否为空，同时处理列表和NumPy数组
         try:
             # 尝试使用len()检查（适用于列表）
@@ -53,7 +53,7 @@ def filter_players(df, selected_positions, selected_teams, salary_range, selecte
             ]
 
     # 位置过滤
-    if selected_positions:
+    if selected_positions and not filtered_df.empty and "all_positions" in filtered_df.columns:
         filtered_df = filtered_df[
             filtered_df["all_positions"].apply(
                 lambda x: any(pos in x for pos in selected_positions)
@@ -61,26 +61,33 @@ def filter_players(df, selected_positions, selected_teams, salary_range, selecte
         ]
 
     # 球队过滤
-    if selected_teams:
+    if selected_teams and not filtered_df.empty and "team_name" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["team_name"].isin(selected_teams)]
 
     # 薪资范围过滤
-    filtered_df = filtered_df[
-        (filtered_df["salary"] >= salary_range[0])
-        & (filtered_df["salary"] <= salary_range[1])
-    ]
+    if not filtered_df.empty and "salary" in filtered_df.columns:
+        filtered_df = filtered_df[
+            (filtered_df["salary"] >= salary_range[0])
+            & (filtered_df["salary"] <= salary_range[1])
+        ]
 
     return filtered_df
 
 
 def sort_players(df, sort_by, sort_order):
     """根据排序条件对球员进行排序"""
+    if df.empty or sort_by not in df.columns:
+        return df
     ascending = sort_order == "升序"
     return df.sort_values(by=sort_by, ascending=ascending)
 
 
 def get_paged_players(df, page, page_size):
     """获取分页后的球员数据"""
+    if page <= 0:
+        return df
+    if page_size <= 0:
+        return pd.DataFrame()
     start_idx = (page - 1) * page_size
     end_idx = start_idx + page_size
     return df.iloc[start_idx:end_idx]
