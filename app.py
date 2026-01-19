@@ -308,10 +308,21 @@ def main():
                                     )
                                     
                                     if new_position != position:
-                                        # 更新位置分配
-                                        st.session_state.starters_positions[assigned_player["player_id"]] = new_position
-                                        # 强制重新运行以更新界面
-                                        st.rerun()
+                                        # 检查目标位置是否已被其他球员占用
+                                        position_occupied = False
+                                        for player_id, pos in st.session_state.starters_positions.items():
+                                            if pos == new_position and player_id != assigned_player["player_id"]:
+                                                position_occupied = True
+                                                break
+                                        
+                                        if position_occupied:
+                                            # 显示错误提示
+                                            st.error("无法完成操作：目标位置已被占用，请先调整该位置的现有球员")
+                                        else:
+                                            # 更新位置分配
+                                            st.session_state.starters_positions[assigned_player["player_id"]] = new_position
+                                            # 强制重新运行以更新界面
+                                            st.rerun()
                         else:
                             # 显示空槽位
                             st.info("点击下方替补球员的'→首发'按钮添加球员")
@@ -373,9 +384,20 @@ def main():
                             # 如果找到可用位置，分配给球员
                             if available_position:
                                 st.session_state.starters_positions[player["player_id"]] = available_position
-                            
-                            # 强制重新运行以更新界面
-                            st.rerun()
+                                # 强制重新运行以更新界面
+                                st.rerun()
+                            else:
+                                # 没有可用位置，将球员移回替补
+                                st.session_state.starters, st.session_state.bench = move_player_to_bench(
+                                    st.session_state.starters, 
+                                    st.session_state.bench, 
+                                    st.session_state.selected_players, 
+                                    player["player_id"]
+                                )
+                                # 显示错误提示
+                                st.error("无法完成操作：所有首发位置已被占用，且没有适合该球员的可用位置")
+                                # 强制重新运行以更新界面
+                                st.rerun()
                     with col6:
                         if st.button("移除", key=f"remove_{player['player_id']}"):
                             # 从阵容中移除
