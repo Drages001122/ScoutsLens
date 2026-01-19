@@ -1,6 +1,6 @@
 import pandas as pd
 import pytest
-from utils.lineup_utils import check_lineup_requirements
+from utils.lineup_utils import check_lineup_requirements, determine_position_type, can_play_position, validate_position_assignment
 
 
 @pytest.fixture
@@ -139,7 +139,7 @@ def test_check_lineup_requirements_position_combinations():
     result2 = check_lineup_requirements(df2)
     assert result2 is True
     
-    # 情况3：位置组合不符合要求（3后卫，1前锋，1中锋）
+    # 情况3：3后卫，1前锋，1中锋 - 现在只要有5人就返回True，具体位置分配验证在其他地方进行
     data3 = {
         "player_id": [1, 2, 3, 4, 5],
         "full_name": ["Player1", "Player2", "Player3", "Player4", "Player5"],
@@ -152,4 +152,143 @@ def test_check_lineup_requirements_position_combinations():
     df3["positions"] = df3["position"].str.split("-")
     df3["all_positions"] = df3["position"].apply(lambda x: x.split("-"))
     result3 = check_lineup_requirements(df3)
-    assert result3 is False
+    assert result3 is True  # 现在只要有5人就返回True
+
+
+def test_determine_position_type():
+    """测试确定球员位置类型的函数"""
+    # 测试仅含后卫
+    assert determine_position_type(["后卫"]) == "仅含后卫"
+    # 测试后卫+前锋
+    assert determine_position_type(["后卫", "前锋"]) == "后卫+前锋"
+    # 测试仅含前锋
+    assert determine_position_type(["前锋"]) == "仅含前锋"
+    # 测试前锋+中锋
+    assert determine_position_type(["前锋", "中锋"]) == "前锋+中锋"
+    # 测试仅含中锋
+    assert determine_position_type(["中锋"]) == "仅含中锋"
+    # 测试未知类型
+    assert determine_position_type([]) == "未知"
+    assert determine_position_type(["后卫", "前锋", "中锋"]) == "未知"
+
+
+def test_can_play_position():
+    """测试检查球员是否可以担任指定位置的函数"""
+    # 测试仅含后卫的球员
+    assert can_play_position(["后卫"], "PG") is True
+    assert can_play_position(["后卫"], "SG") is True
+    assert can_play_position(["后卫"], "SF") is False
+    assert can_play_position(["后卫"], "PF") is False
+    assert can_play_position(["后卫"], "C") is False
+    
+    # 测试后卫+前锋的球员
+    assert can_play_position(["后卫", "前锋"], "PG") is False
+    assert can_play_position(["后卫", "前锋"], "SG") is True
+    assert can_play_position(["后卫", "前锋"], "SF") is True
+    assert can_play_position(["后卫", "前锋"], "PF") is False
+    assert can_play_position(["后卫", "前锋"], "C") is False
+    
+    # 测试仅含前锋的球员
+    assert can_play_position(["前锋"], "PG") is False
+    assert can_play_position(["前锋"], "SG") is False
+    assert can_play_position(["前锋"], "SF") is True
+    assert can_play_position(["前锋"], "PF") is True
+    assert can_play_position(["前锋"], "C") is False
+    
+    # 测试前锋+中锋的球员
+    assert can_play_position(["前锋", "中锋"], "PG") is False
+    assert can_play_position(["前锋", "中锋"], "SG") is False
+    assert can_play_position(["前锋", "中锋"], "SF") is False
+    assert can_play_position(["前锋", "中锋"], "PF") is True
+    assert can_play_position(["前锋", "中锋"], "C") is True
+    
+    # 测试仅含中锋的球员
+    assert can_play_position(["中锋"], "PG") is False
+    assert can_play_position(["中锋"], "SG") is False
+    assert can_play_position(["中锋"], "SF") is False
+    assert can_play_position(["中锋"], "PF") is False
+    assert can_play_position(["中锋"], "C") is True
+
+
+def test_validate_position_assignment():
+    """测试验证位置分配的函数"""
+    # 创建测试用的球员数据
+    player1 = {
+        "player_id": 1,
+        "full_name": "Player1",
+        "all_positions": ["后卫"]
+    }
+    
+    player2 = {
+        "player_id": 2,
+        "full_name": "Player2",
+        "all_positions": ["后卫", "前锋"]
+    }
+    
+    player3 = {
+        "player_id": 3,
+        "full_name": "Player3",
+        "all_positions": ["前锋"]
+    }
+    
+    player4 = {
+        "player_id": 4,
+        "full_name": "Player4",
+        "all_positions": ["前锋", "中锋"]
+    }
+    
+    player5 = {
+        "player_id": 5,
+        "full_name": "Player5",
+        "all_positions": ["中锋"]
+    }
+    
+    # 测试有效的位置分配
+    valid_assignment = [
+        {"player": player1, "position": "PG"},
+        {"player": player2, "position": "SG"},
+        {"player": player3, "position": "SF"},
+        {"player": player4, "position": "PF"},
+        {"player": player5, "position": "C"}
+    ]
+    assert validate_position_assignment(valid_assignment) is True
+    
+    # 测试无效的位置分配（球员分配到不可担任的位置）
+    invalid_assignment = [
+        {"player": player1, "position": "SF"},  # 后卫不能打小前锋
+        {"player": player2, "position": "PG"},  # 后卫+前锋不能打控球后卫
+        {"player": player3, "position": "C"},  # 前锋不能打中锋
+        {"player": player4, "position": "SG"},  # 前锋+中锋不能打得分后卫
+        {"player": player5, "position": "PF"}   # 中锋不能打大前锋
+    ]
+    assert validate_position_assignment(invalid_assignment) is False
+    
+    # 测试人数不足的情况
+    insufficient_assignment = [
+        {"player": player1, "position": "PG"},
+        {"player": player2, "position": "SG"},
+        {"player": player3, "position": "SF"},
+        {"player": player4, "position": "PF"}
+    ]
+    assert validate_position_assignment(insufficient_assignment) is False
+
+
+def test_all_position_combinations():
+    """测试所有位置组合场景"""
+    # 测试所有位置类型的组合
+    position_types = [
+        (["后卫"], ["PG", "SG"]),          # 仅含后卫
+        (["后卫", "前锋"], ["SG", "SF"]),  # 后卫+前锋
+        (["前锋"], ["SF", "PF"]),          # 仅含前锋
+        (["前锋", "中锋"], ["PF", "C"]),   # 前锋+中锋
+        (["中锋"], ["C"])                  # 仅含中锋
+    ]
+    
+    for player_positions, allowed_positions in position_types:
+        # 测试允许的位置
+        for pos in allowed_positions:
+            assert can_play_position(player_positions, pos) is True
+        # 测试不允许的位置
+        for pos in ["PG", "SG", "SF", "PF", "C"]:
+            if pos not in allowed_positions:
+                assert can_play_position(player_positions, pos) is False

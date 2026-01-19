@@ -1,45 +1,69 @@
-# 检查首发阵容是否符合要求
+from utils.constants import POSITION_ADAPTATION_RULES
+
+# 确定球员的位置类型
+def determine_position_type(player_positions):
+    """根据球员的位置属性确定其位置类型"""
+    has_guard = "后卫" in player_positions
+    has_forward = "前锋" in player_positions
+    has_center = "中锋" in player_positions
+    
+    if has_guard and not has_forward and not has_center:
+        return "仅含后卫"
+    elif has_guard and has_forward and not has_center:
+        return "后卫+前锋"
+    elif not has_guard and has_forward and not has_center:
+        return "仅含前锋"
+    elif not has_guard and has_forward and has_center:
+        return "前锋+中锋"
+    elif not has_guard and not has_forward and has_center:
+        return "仅含中锋"
+    else:
+        return "未知"
+
+# 检查球员是否可以担任指定位置
+def can_play_position(player_positions, target_position):
+    """检查球员是否可以担任指定位置"""
+    position_type = determine_position_type(player_positions)
+    if position_type not in POSITION_ADAPTATION_RULES:
+        return False
+    allowed_positions = POSITION_ADAPTATION_RULES[position_type]
+    return target_position in allowed_positions
+
+# 检查首发阵容是否符合新的位置规则
 def check_lineup_requirements(starters):
-    # 首先检查首发阵容是否至少有5人
-    if len(starters) < 5:
+    """检查首发阵容是否符合新的位置规则"""
+    # 首先检查首发阵容是否有5人
+    if len(starters) != 5:
         return False
-
-    # 获取所有首发球员的位置信息
-    player_positions = []
+    
+    # 检查每个球员是否有位置信息
     for _, player in starters.iterrows():
-        if "all_positions" in player and player["all_positions"]:
-            player_positions.append(player["all_positions"])
-        else:
-            # 如果球员没有位置信息，无法满足要求
+        if "all_positions" not in player or not player["all_positions"]:
             return False
+    
+    # 这里暂时返回True，因为具体的位置分配检查将在UI和导出验证中进行
+    # 实际的位置验证将基于用户的具体位置分配
+    return True
 
-    # 尝试所有可能的位置分配组合，看是否能满足2-2-1的要求
-    # 这里使用回溯法来尝试不同的分配方式
-    def backtrack(index, guards, forwards, centers):
-        # 如果所有球员都已分配位置
-        if index == len(player_positions):
-            return guards == 2 and forwards == 2 and centers == 1
-
-        # 尝试将当前球员分配到不同的位置
-        positions = player_positions[index]
-
-        # 尝试分配为后卫
-        if guards < 2 and "后卫" in positions:
-            if backtrack(index + 1, guards + 1, forwards, centers):
-                return True
-
-        # 尝试分配为前锋
-        if forwards < 2 and "前锋" in positions:
-            if backtrack(index + 1, guards, forwards + 1, centers):
-                return True
-
-        # 尝试分配为中锋
-        if centers < 1 and "中锋" in positions:
-            if backtrack(index + 1, guards, forwards, centers + 1):
-                return True
-
-        # 如果当前球员无法分配到任何需要的位置，返回False
+# 验证具体的位置分配
+def validate_position_assignment(starters_with_positions):
+    """验证首发阵容的具体位置分配是否符合规则"""
+    # 检查是否有5个位置分配
+    if len(starters_with_positions) != 5:
         return False
-
-    # 开始尝试分配
-    return backtrack(0, 0, 0, 0)
+    
+    # 检查每个位置分配是否有效
+    for player_info in starters_with_positions:
+        if "player" not in player_info or "position" not in player_info:
+            return False
+        
+        player = player_info["player"]
+        assigned_position = player_info["position"]
+        
+        if "all_positions" not in player or not player["all_positions"]:
+            return False
+        
+        if not can_play_position(player["all_positions"], assigned_position):
+            return False
+    
+    return True

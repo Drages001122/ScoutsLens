@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import datetime
 from utils.constants import SALARY_LIMIT
-from utils.lineup_utils import check_lineup_requirements
+from utils.lineup_utils import check_lineup_requirements, validate_position_assignment
 
 
 def add_player_to_lineup(selected_players, bench, player_data):
@@ -89,7 +89,7 @@ def remove_player_from_lineup(selected_players, starters, bench, player_id):
     return new_selected_players, new_starters, new_bench
 
 
-def validate_lineup(starters, bench, total_salary):
+def validate_lineup(starters, bench, total_salary, starters_with_positions=None):
     """验证阵容是否符合要求"""
     starters_count = len(starters)
     bench_count = len(bench)
@@ -100,6 +100,12 @@ def validate_lineup(starters, bench, total_salary):
     bench_valid = bench_count == 7
     # 检查首发位置要求
     positions_valid = check_lineup_requirements(starters)
+    
+    # 如果提供了具体的位置分配，验证位置分配是否符合规则
+    position_assignment_valid = True
+    if starters_with_positions:
+        position_assignment_valid = validate_position_assignment(starters_with_positions)
+    
     # 检查薪资要求
     salary_valid = total_salary <= SALARY_LIMIT
     
@@ -107,8 +113,9 @@ def validate_lineup(starters, bench, total_salary):
         "starters_valid": starters_valid,
         "bench_valid": bench_valid,
         "positions_valid": positions_valid,
+        "position_assignment_valid": position_assignment_valid,
         "salary_valid": salary_valid,
-        "valid_lineup": starters_valid and bench_valid and positions_valid and salary_valid
+        "valid_lineup": starters_valid and bench_valid and positions_valid and position_assignment_valid and salary_valid
     }
 
 

@@ -5,9 +5,10 @@ import pandas as pd
 import streamlit as st
 
 # 导入拆分的模块
-from utils.constants import SALARY_LIMIT
+from utils.constants import SALARY_LIMIT, FIXED_POSITIONS, POSITION_FULL_NAMES
 from utils.data_processor import load_players_data, filter_players, sort_players, get_paged_players, calculate_total_salary, format_salary
 from utils.lineup_manager import add_player_to_lineup, move_player_to_starters, move_player_to_bench, remove_player_from_lineup, validate_lineup, prepare_export_data, reset_lineup
+from utils.lineup_utils import can_play_position
 from utils.ranking import get_player_stats, run_stats_script, should_use_cache
 from utils.result_viewer import load_lineup_data, display_lineup_results
 
@@ -25,6 +26,9 @@ def main():
         st.session_state.starters = pd.DataFrame()
     if "bench" not in st.session_state:
         st.session_state.bench = pd.DataFrame()
+    if "starters_positions" not in st.session_state:
+        # 存储首发球员的位置分配，格式为 {player_id: position}
+        st.session_state.starters_positions = {}
     if "current_page" not in st.session_state:
         st.session_state.current_page = "main"
     if "active_section" not in st.session_state:
@@ -150,6 +154,7 @@ def main():
             # 重置阵容按钮
             if st.sidebar.button("🔄 重置阵容"):
                 st.session_state.selected_players, st.session_state.starters, st.session_state.bench = reset_lineup()
+                st.session_state.starters_positions = {}
                 # 强制重新运行以更新界面
                 st.rerun()
 
@@ -217,80 +222,187 @@ def main():
             # 显示当前阵容
             st.header("🏆 当前阵容")
 
-            lineup_col1, lineup_col2 = st.columns(2)
-
-            with lineup_col1:
-                st.subheader("首发阵容")
-                if not st.session_state.starters.empty:
-                    # 显示首发球员列表，带有管理按钮
-                    for i, player in st.session_state.starters.iterrows():
-                        col1, col2, col3, col4, col5 = st.columns([3, 2, 2, 2, 1])
-                        with col1:
-                            st.write(player["full_name"])
-                        with col2:
-                            st.write(player["position"])
-                        with col3:
-                            st.write(player["team_name"])
-                        with col4:
-                            st.write(f"${player['salary']:,.0f}")
-                        with col5:
-                            if st.button(
-                                "→替补", key=f"to_bench_{player['player_id']}"
-                            ):
-                                # 从首发移到替补
-                                st.session_state.starters, st.session_state.bench = move_player_to_bench(
-                                    st.session_state.starters, 
-                                    st.session_state.bench, 
-                                    st.session_state.selected_players, 
-                                    player["player_id"]
-                                )
-                                # 强制重新运行以更新界面
-                                st.rerun()
-                else:
-                    st.info("尚未选择首发球员")
-
-            with lineup_col2:
-                st.subheader("替补阵容")
-                if not st.session_state.bench.empty:
-                    # 显示替补球员列表，带有管理按钮
-                    for i, player in st.session_state.bench.iterrows():
-                        col1, col2, col3, col4, col5, col6 = st.columns(
-                            [3, 2, 2, 2, 1, 1]
+            # 首发阵容：五槽位配置界面
+            st.subheader("首发阵容 - 位置配置")
+            
+            # 创建五列布局，每列对应一个位置槽位
+            position_cols = st.columns(5)
+            
+            # 存储首发球员的位置分配信息
+            starters_with_positions = []
+            
+            # 遍历每个位置槽位
+            for i, (position, col) in enumerate(zip(FIXED_POSITIONS, position_cols)):
+                with col:
+                    # 显示位置标签
+                    st.markdown(f"### {position}\n*{POSITION_FULL_NAMES[position]}*")
+                    
+                    # 检查是否有球员分配到当前位置
+                    assigned_player = None
+                    for player_id, pos in st.session_state.starters_positions.items():
+                        if pos == position:
+                            # 找到分配到当前位置的球员
+                            if not st.session_state.starters.empty:
+                                player_mask = st.session_state.starters['player_id'] == player_id
+                                if player_mask.any():
+                                    assigned_player = st.session_state.starters[player_mask].iloc[0]
+                    
+                    # 确定槽位背景颜色
+                    slot_color = "#e0e0e0"  # 默认灰色
+                    if assigned_player is not None:
+                        # 检查球员是否可以担任当前位置
+                        if "all_positions" in assigned_player:
+                            player_positions = assigned_player["all_positions"]
+                            if can_play_position(player_positions, position):
+                                slot_color = "#c8e6c9"  # 绿色：可以担任
+                            else:
+                                slot_color = "#ffcdd2"  # 红色：不能担任
+                    
+                    # 使用容器显示槽位，设置背景颜色
+                    with st.container():
+                        st.markdown(
+                            f"""
+                            <div style="background-color: {slot_color}; padding: 15px; border-radius: 10px;">
+                            """, 
+                            unsafe_allow_html=True
                         )
-                        with col1:
-                            st.write(player["full_name"])
-                        with col2:
-                            st.write(player["position"])
-                        with col3:
-                            st.write(player["team_name"])
-                        with col4:
-                            st.write(f"${player['salary']:,.0f}")
-                        with col5:
-                            if st.button(
-                                "→首发", key=f"to_starter_{player['player_id']}"
-                            ):
-                                # 从替补移到首发
-                                st.session_state.starters, st.session_state.bench = move_player_to_starters(
-                                    st.session_state.starters, 
-                                    st.session_state.bench, 
-                                    st.session_state.selected_players, 
-                                    player["player_id"]
-                                )
-                                # 强制重新运行以更新界面
-                                st.rerun()
-                        with col6:
-                            if st.button("移除", key=f"remove_{player['player_id']}"):
-                                # 从阵容中移除
-                                st.session_state.selected_players, st.session_state.starters, st.session_state.bench = remove_player_from_lineup(
-                                    st.session_state.selected_players, 
-                                    st.session_state.starters, 
-                                    st.session_state.bench, 
-                                    player["player_id"]
-                                )
-                                # 强制重新运行以更新界面
-                                st.rerun()
-                else:
-                    st.info("尚未选择替补球员")
+                        
+                        # 显示槽位内容
+                        if assigned_player is not None:
+                            # 显示已分配的球员
+                            st.markdown(f"**{assigned_player['full_name']}**")
+                            st.markdown(f"{assigned_player['team_name']}")
+                            st.markdown(f"${assigned_player['salary']:,.0f}")
+                            
+                            # 添加操作按钮
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button(f"→替补", key=f"to_bench_{assigned_player['player_id']}"):
+                                    # 从首发移到替补
+                                    st.session_state.starters, st.session_state.bench = move_player_to_bench(
+                                        st.session_state.starters, 
+                                        st.session_state.bench, 
+                                        st.session_state.selected_players, 
+                                        assigned_player["player_id"]
+                                    )
+                                    # 从位置分配中移除
+                                    if assigned_player["player_id"] in st.session_state.starters_positions:
+                                        del st.session_state.starters_positions[assigned_player["player_id"]]
+                                    # 强制重新运行以更新界面
+                                    st.rerun()
+                            with col2:
+                                # 位置选择下拉框
+                                available_positions = []
+                                if "all_positions" in assigned_player:
+                                    player_positions = assigned_player["all_positions"]
+                                    for pos in FIXED_POSITIONS:
+                                        if can_play_position(player_positions, pos):
+                                            available_positions.append(pos)
+                                
+                                if available_positions:
+                                    new_position = st.selectbox(
+                                        "调整位置", 
+                                        available_positions, 
+                                        index=available_positions.index(position) if position in available_positions else 0,
+                                        key=f"pos_select_{assigned_player['player_id']}"
+                                    )
+                                    
+                                    if new_position != position:
+                                        # 更新位置分配
+                                        st.session_state.starters_positions[assigned_player["player_id"]] = new_position
+                                        # 强制重新运行以更新界面
+                                        st.rerun()
+                        else:
+                            # 显示空槽位
+                            st.info("点击下方替补球员的'→首发'按钮添加球员")
+                        
+                        st.markdown(
+                            f"""
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
+            
+            # 替补阵容
+            st.subheader("替补阵容")
+            if not st.session_state.bench.empty:
+                # 显示替补球员列表，带有管理按钮
+                for i, player in st.session_state.bench.iterrows():
+                    col1, col2, col3, col4, col5, col6 = st.columns(
+                        [3, 2, 2, 2, 1, 1]
+                    )
+                    with col1:
+                        st.write(player["full_name"])
+                    with col2:
+                        st.write(player["position"])
+                    with col3:
+                        st.write(player["team_name"])
+                    with col4:
+                        st.write(f"${player['salary']:,.0f}")
+                    with col5:
+                        if st.button(
+                            "→首发", key=f"to_starter_{player['player_id']}"
+                        ):
+                            # 从替补移到首发
+                            st.session_state.starters, st.session_state.bench = move_player_to_starters(
+                                st.session_state.starters, 
+                                st.session_state.bench, 
+                                st.session_state.selected_players, 
+                                player["player_id"]
+                            )
+                            
+                            # 为新添加的首发球员分配位置
+                            # 找到第一个可用的位置槽位
+                            available_position = None
+                            for pos in FIXED_POSITIONS:
+                                # 检查位置是否已被占用
+                                position_taken = False
+                                for p_id, assigned_pos in st.session_state.starters_positions.items():
+                                    if assigned_pos == pos:
+                                        position_taken = True
+                                        break
+                                
+                                if not position_taken:
+                                    # 检查球员是否可以担任该位置
+                                    if "all_positions" in player:
+                                        player_positions = player["all_positions"]
+                                        if can_play_position(player_positions, pos):
+                                            available_position = pos
+                                            break
+                            
+                            # 如果找到可用位置，分配给球员
+                            if available_position:
+                                st.session_state.starters_positions[player["player_id"]] = available_position
+                            
+                            # 强制重新运行以更新界面
+                            st.rerun()
+                    with col6:
+                        if st.button("移除", key=f"remove_{player['player_id']}"):
+                            # 从阵容中移除
+                            st.session_state.selected_players, st.session_state.starters, st.session_state.bench = remove_player_from_lineup(
+                                st.session_state.selected_players, 
+                                st.session_state.starters, 
+                                st.session_state.bench, 
+                                player["player_id"]
+                            )
+                            # 从位置分配中移除（如果存在）
+                            if player["player_id"] in st.session_state.starters_positions:
+                                del st.session_state.starters_positions[player["player_id"]]
+                            # 强制重新运行以更新界面
+                            st.rerun()
+            else:
+                st.info("尚未选择替补球员")
+            
+            # 准备位置分配验证数据
+            for player_id, position in st.session_state.starters_positions.items():
+                if not st.session_state.starters.empty:
+                    player_mask = st.session_state.starters['player_id'] == player_id
+                    if player_mask.any():
+                        player = st.session_state.starters[player_mask].iloc[0]
+                        starters_with_positions.append({
+                            "player": player,
+                            "position": position
+                        })
 
             # 导出功能
             st.header("📤 导出阵容")
@@ -300,7 +412,8 @@ def main():
                 validation_result = validate_lineup(
                     st.session_state.starters, 
                     st.session_state.bench, 
-                    total_salary
+                    total_salary,
+                    starters_with_positions
                 )
                 
                 valid_lineup = validation_result["valid_lineup"]
@@ -338,15 +451,26 @@ def main():
                     with st.expander("3. 首发位置要求", expanded=True):
                         col_left, col_right = st.columns([3, 2])
                         with col_left:
-                            st.write("要求：首发必须满足2后卫2前锋1中锋的位置要求")
+                            st.write("要求：首发必须有5名球员")
                         with col_right:
                             if validation_result["positions_valid"]:
-                                st.success("✅ 符合要求")
+                                st.success(f"✅ 符合要求")
                             else:
-                                st.error("❌ 不符合要求")
+                                st.error(f"❌ 不符合要求")
+                    
+                    # 位置分配验证
+                    with st.expander("4. 位置分配验证", expanded=True):
+                        col_left, col_right = st.columns([3, 2])
+                        with col_left:
+                            st.write("要求：每个球员必须分配到其可担任的位置")
+                        with col_right:
+                            if validation_result["position_assignment_valid"]:
+                                st.success(f"✅ 符合要求")
+                            else:
+                                st.error(f"❌ 不符合要求")
 
                     # 薪资要求检查
-                    with st.expander("4. 薪资要求", expanded=True):
+                    with st.expander("5. 薪资要求", expanded=True):
                         col_left, col_right = st.columns([3, 2])
                         with col_left:
                             st.write(f"要求：总薪资不超过 ${SALARY_LIMIT:,.0f}")

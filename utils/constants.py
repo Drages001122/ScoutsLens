@@ -1,6 +1,27 @@
 # 位置翻译字典
 POSITION_TRANSLATION = {"Guard": "后卫", "Forward": "前锋", "Center": "中锋"}
 
+# 固定首发位置
+FIXED_POSITIONS = ["PG", "SG", "SF", "PF", "C"]
+
+# 位置全称映射
+POSITION_FULL_NAMES = {
+    "PG": "控球后卫",
+    "SG": "得分后卫",
+    "SF": "小前锋",
+    "PF": "大前锋",
+    "C": "中锋"
+}
+
+# 位置适配规则
+POSITION_ADAPTATION_RULES = {
+    "仅含后卫": ["PG", "SG"],
+    "后卫+前锋": ["SG", "SF"],
+    "仅含前锋": ["SF", "PF"],
+    "前锋+中锋": ["PF", "C"],
+    "仅含中锋": ["C"]
+}
+
 # 球队名称翻译字典
 TEAM_TRANSLATION = {
     "Kings": "国王",
