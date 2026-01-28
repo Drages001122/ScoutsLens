@@ -19,7 +19,7 @@
         <tbody>
           <tr v-for="player in players" :key="player.id">
             <td class="player-avatar-cell">
-              <img :src="`${API_CONFIG.BASE_URL}/api/player_avatar/${player.player_id}`" :alt="player.full_name" onerror="this.src='https://via.placeholder.com/60'">
+              <img :src="`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PLAYERS_INFORMATION}/avatar/${player.player_id}`" :alt="player.full_name" onerror="this.src='https://via.placeholder.com/60'">
             </td>
             <td class="player-name-cell">{{ player.full_name }}</td>
             <td class="player-team-cell">{{ player.team_name }}</td>
@@ -102,7 +102,7 @@ const fetchPlayers = async (page = 1) => {
   error.value = ''
   
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PLAYERS}?page=${page}&per_page=${perPage.value}`)
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PLAYERS_INFORMATION}/list?page=${page}&per_page=${perPage.value}`)
     
     if (!response.ok) {
       throw new Error('API调用失败')

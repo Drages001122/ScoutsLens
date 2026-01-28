@@ -9,7 +9,7 @@ CORS(app)
 init_db(app)
 
 
-app.register_blueprint(players_information_bp)
+app.register_blueprint(players_information_bp, url_prefix='/api/players_information')
 
 
 if __name__ == "__main__":

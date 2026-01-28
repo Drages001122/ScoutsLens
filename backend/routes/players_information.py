@@ -6,7 +6,7 @@ from models import PlayerInformation
 players_information_bp = Blueprint("players_information", __name__)
 
 
-@players_information_bp.route("/api/players_information", methods=["GET"])
+@players_information_bp.route("/list", methods=["GET"])
 def get_players():
     try:
         page = request.args.get("page", 1, type=int)
@@ -32,7 +32,7 @@ def get_players():
         return jsonify({"error": str(e)}), 500
 
 
-@players_information_bp.route("/api/player_avatar/<int:player_id>", methods=["GET"])
+@players_information_bp.route("/avatar/<int:player_id>", methods=["GET"])
 def get_player_avatar(player_id):
     try:
         avatars_dir = os.path.join(

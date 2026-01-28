@@ -5,7 +5,7 @@ const API_CONFIG = {
   
   // API endpoints
   ENDPOINTS: {
-    PLAYERS: '/api/players_information'
+    PLAYERS_INFORMATION: '/api/players_information'
   }
 };
 
