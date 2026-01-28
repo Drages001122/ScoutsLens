@@ -1,173 +1,60 @@
 <template>
   <div class="page">
-    <div class="player-list-container">
-      <h3>NBA球员列表</h3>
+    <div class="content-container">
+      <!-- 左侧球员列表 -->
+      <PlayerList 
+        :excludePlayers="[...startingLineup, ...benchLineup]"
+        @add-player="addPlayerToBench"
+      />
       
-      <!-- 薪资范围筛选 -->
-      <div class="salary-filter">
-        <h4>薪资范围筛选</h4>
-        <div class="filter-controls">
-          <div class="filter-group">
-            <label>下限：</label>
-            <input 
-              type="number" 
-              v-model.number="salaryMin" 
-              min="0" 
-              max="6" 
-              step="0.1"
-              @change="fetchPlayers(currentPage)"
-            >
-            <span>千万美金</span>
-          </div>
-          <div class="filter-group">
-            <label>上限：</label>
-            <input 
-              type="number" 
-              v-model.number="salaryMax" 
-              min="0" 
-              max="6" 
-              step="0.1"
-              @change="fetchPlayers(currentPage)"
-            >
-            <span>千万美金</span>
-          </div>
-        </div>
-      </div>
-      
-      <!-- 球员列表表格 -->
-      <table class="player-table" v-if="players.length > 0">
-        <thead>
-          <tr>
-            <th></th>
-            <th>球员</th>
-            <th>球队</th>
-            <th>位置</th>
-            <th>薪资</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="player in players" :key="player.id">
-            <td class="player-avatar-cell">
-              <img :src="`/player_avatars/${player.player_id}.png`" :alt="player.full_name" onerror="this.src='https://via.placeholder.com/60'">
-            </td>
-            <td class="player-name-cell">{{ player.full_name }}</td>
-            <td class="player-team-cell">{{ translateTeam(player.team_name) }}</td>
-            <td class="player-position-cell">{{ translatePosition(player.position) }}</td>
-            <td class="player-salary-cell">${{ player.salary.toLocaleString() }}</td>
-          </tr>
-        </tbody>
-      </table>
-      
-      <!-- 加载状态 -->
-      <div class="loading" v-else-if="loading">
-        加载中...
-      </div>
-      
-      <!-- 错误状态 -->
-      <div class="error" v-else-if="error">
-        {{ error }}
-      </div>
-      
-      <!-- 无数据状态 -->
-      <div class="no-data" v-else>
-        暂无球员数据
-      </div>
-      
-      <!-- 分页控件 -->
-      <div class="pagination" v-if="pagination">
-        <button 
-          class="page-btn" 
-          :disabled="currentPage === 1"
-          @click="changePage(1)"
-        >
-          首页
-        </button>
-        <button 
-          class="page-btn" 
-          :disabled="currentPage === 1"
-          @click="changePage(currentPage - 1)"
-        >
-          上一页
-        </button>
-        
-        <span class="page-info">
-          第 {{ currentPage }} 页，共 {{ pagination.total_pages }} 页
-        </span>
-        
-        <button 
-          class="page-btn" 
-          :disabled="currentPage === pagination.total_pages"
-          @click="changePage(currentPage + 1)"
-        >
-          下一页
-        </button>
-        <button 
-          class="page-btn" 
-          :disabled="currentPage === pagination.total_pages"
-          @click="changePage(pagination.total_pages)"
-        >
-          末页
-        </button>
-      </div>
+      <!-- 右侧当前阵容 -->
+      <CurrentLineup 
+        :startingLineup="startingLineup"
+        :benchLineup="benchLineup"
+        @move-to-bench="moveToBench"
+        @move-to-starting="moveToStartingLineup"
+        @remove-from-lineup="removeFromLineup"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import API_CONFIG from '../config/api'
-import { translateTeam, translatePosition } from '../utils/translation'
+import { ref } from 'vue'
+import PlayerList from '../components/PlayerList.vue'
+import CurrentLineup from '../components/CurrentLineup.vue'
 
-// 响应式数据
-const players = ref([])
-const loading = ref(false)
-const error = ref('')
-const pagination = ref(null)
-const currentPage = ref(1)
-const perPage = ref(10)
-const salaryMin = ref(0)
-const salaryMax = ref(6)
+// 当前阵容数据
+const startingLineup = ref([])
+const benchLineup = ref([])
 
-// API调用函数
-const fetchPlayers = async (page = 1) => {
-  loading.value = true
-  error.value = ''
-  
-  try {
-    const minSalaryUSD = salaryMin.value * 10000000 // 转换为美金
-    const maxSalaryUSD = salaryMax.value * 10000000 // 转换为美金
-    
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PLAYERS_INFORMATION}/list?page=${page}&per_page=${perPage.value}&salary_min=${minSalaryUSD}&salary_max=${maxSalaryUSD}`)
-    
-    if (!response.ok) {
-      throw new Error('API调用失败')
-    }
-    
-    const data = await response.json()
-    players.value = data.players
-    pagination.value = data.pagination
-    currentPage.value = page
-  } catch (err) {
-    error.value = err.message
-    players.value = []
-    pagination.value = null
-    currentPage.value = 1
-  } finally {
-    loading.value = false
-  }
+// 将球员添加到替补阵容
+const addPlayerToBench = (player) => {
+  // 添加到替补阵容
+  benchLineup.value.push(player)
 }
 
-// 分页函数
-const changePage = (page) => {
-  if (page >= 1 && (!pagination.value || page <= pagination.value.total_pages)) {
-    fetchPlayers(page)
-  }
+// 将球员从替补阵容移动到首发阵容
+const moveToStartingLineup = (player) => {
+  // 从替补阵容中移除
+  benchLineup.value = benchLineup.value.filter(p => p.id !== player.id)
+  // 添加到首发阵容
+  startingLineup.value.push(player)
 }
 
-// 页面挂载时获取数据
-onMounted(() => {
-  fetchPlayers()
-})
+// 将球员从首发阵容移动到替补阵容
+const moveToBench = (player) => {
+  // 从首发阵容中移除
+  startingLineup.value = startingLineup.value.filter(p => p.id !== player.id)
+  // 添加到替补阵容
+  benchLineup.value.push(player)
+}
+
+// 将球员从替补阵容移出阵容
+const removeFromLineup = (player) => {
+  // 从替补阵容中移除
+  benchLineup.value = benchLineup.value.filter(p => p.id !== player.id)
+}
 </script>
 
 <style scoped>
@@ -175,171 +62,10 @@ onMounted(() => {
   padding: 20px;
 }
 
-h2 {
-  font-size: 24px;
-  margin-bottom: 20px;
-}
-
-h3 {
-  font-size: 20px;
-  margin-bottom: 15px;
-  color: #333;
-}
-
-h4 {
-  font-size: 16px;
-  margin-bottom: 10px;
-  color: #333;
-}
-
-.player-list-container {
-  max-width: 1200px;
+.content-container {
+  display: flex;
+  gap: 30px;
+  max-width: 1400px;
   margin: 0 auto;
-}
-
-.salary-filter {
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.filter-controls {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.filter-group label {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-}
-
-.filter-group input {
-  width: 80px;
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.filter-group span {
-  font-size: 14px;
-  color: #666;
-}
-
-.player-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.player-table th,
-.player-table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.player-table th {
-  background-color: #f8f9fa;
-  font-weight: 600;
-  color: #333;
-  font-size: 14px;
-}
-
-.player-table tr:hover {
-  background-color: #f5f5f5;
-}
-
-.player-avatar-cell {
-  width: 80px;
-}
-
-.player-avatar-cell img {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  object-fit: cover;
-  background-color: #f0f0f0;
-}
-
-.player-name-cell {
-  font-weight: 500;
-  color: #333;
-}
-
-.player-team-cell {
-  color: #333;
-}
-
-.player-position-cell {
-  color: #333;
-}
-
-.player-salary-cell {
-  font-weight: 500;
-  color: #4caf50;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.page-btn {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: #fff;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.page-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-}
-
-.page-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.page-info {
-  font-size: 14px;
-  color: #666;
-}
-
-.loading {
-  text-align: center;
-  padding: 40px;
-  font-size: 16px;
-  color: #666;
-}
-
-.error {
-  text-align: center;
-  padding: 40px;
-  font-size: 16px;
-  color: #f44336;
-}
-
-.no-data {
-  text-align: center;
-  padding: 40px;
-  font-size: 16px;
-  color: #666;
 }
 </style>
