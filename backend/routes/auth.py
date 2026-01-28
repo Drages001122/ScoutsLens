@@ -1,10 +1,11 @@
-from flask import Blueprint, request, jsonify
-from models import User
-from config import db
 import hashlib
-import jwt
 import os
 from datetime import datetime, timedelta
+
+import jwt
+from config import db
+from flask import Blueprint, jsonify, request
+from models import User
 
 # 创建蓝图
 auth_bp = Blueprint("auth", __name__)
