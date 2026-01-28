@@ -3,6 +3,7 @@ from flask import Flask
 from flask_cors import CORS
 from routes.players_information import players_information_bp
 from routes.rule import rule_bp
+from routes.auth import auth_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -12,6 +13,7 @@ init_db(app)
 
 app.register_blueprint(players_information_bp, url_prefix="/api/players_information")
 app.register_blueprint(rule_bp, url_prefix="/api/rule")
+app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
 
 if __name__ == "__main__":
