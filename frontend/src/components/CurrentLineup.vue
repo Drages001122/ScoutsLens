@@ -39,6 +39,7 @@
             >
             <div class="player-info">
               <div class="player-name">{{ startingSlots[slot].full_name }}</div>
+              <div class="player-team">{{ translateTeam(startingSlots[slot].team_name) }}</div>
               <div class="player-position">{{ translatePosition(startingSlots[slot].position) }}</div>
               <div class="player-salary">${{ startingSlots[slot].salary.toLocaleString() }}</div>
             </div>
@@ -59,6 +60,7 @@
           <tr>
             <th></th>
             <th>球员</th>
+            <th>球队</th>
             <th>位置</th>
             <th>薪资</th>
             <th>操作</th>
@@ -70,6 +72,7 @@
               <img :src="`/player_avatars/${player.player_id}.png`" :alt="player.full_name" onerror="this.src='https://via.placeholder.com/60'">
             </td>
             <td class="player-name-cell">{{ player.full_name }}</td>
+            <td class="player-team-cell">{{ translateTeam(player.team_name) }}</td>
             <td class="player-position-cell">{{ translatePosition(player.position) }}</td>
             <td class="player-salary-cell">${{ player.salary.toLocaleString() }}</td>
             <td class="player-action-cell">
@@ -88,7 +91,8 @@
     <div v-if="showSlotModal" class="modal-overlay" @click="closeSlotModal">
       <div class="modal-content" @click.stop>
         <h3>选择首发位置</h3>
-        <p class="player-info-text">{{ selectedPlayer?.full_name }} ({{ translatePosition(selectedPlayer?.position) }})</p>
+        <p class="player-info-text">{{ selectedPlayer?.full_name }} ({{ translateTeam(selectedPlayer?.team_name) }})</p>
+        <p class="player-info-text">{{ translatePosition(selectedPlayer?.position) }}</p>
         <div class="slot-options">
           <button 
             v-for="slot in availableSlots" 
@@ -107,7 +111,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { translatePosition } from '../utils/translation'
+import { translatePosition, translateTeam } from '../utils/translation'
 import { getAvailableSlots, slotNames, slotOrder } from '../utils/positionMapping'
 
 // Props
@@ -344,6 +348,12 @@ h4 {
   margin-bottom: 4px;
 }
 
+.slot-player .player-team {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 4px;
+}
+
 .slot-player .player-position {
   font-size: 12px;
   color: #666;
@@ -409,6 +419,10 @@ h4 {
 .player-name-cell {
   font-weight: 500;
   color: #333;
+}
+
+.player-team-cell {
+  color: #666;
 }
 
 .player-position-cell {
