@@ -1,7 +1,5 @@
 <template>
   <div class="current-lineup-container">
-    <h3>当前阵容</h3>
-    
     <!-- 首发阵容 -->
     <div class="lineup-section">
       <h4>首发阵容</h4>
@@ -107,12 +105,6 @@ const removeFromLineup = (player) => {
 .current-lineup-container {
   flex: 1;
   min-width: 0;
-}
-
-h3 {
-  font-size: 20px;
-  margin-bottom: 15px;
-  color: #333;
 }
 
 h4 {
