@@ -1,7 +1,5 @@
 <template>
   <div class="page">
-    <h2>阵容选择页面</h2>
-    
     <div class="player-list-container">
       <h3>NBA球员列表</h3>
       
@@ -53,8 +51,8 @@
               <img :src="`/player_avatars/${player.player_id}.png`" :alt="player.full_name" onerror="this.src='https://via.placeholder.com/60'">
             </td>
             <td class="player-name-cell">{{ player.full_name }}</td>
-            <td class="player-team-cell">{{ player.team_name }}</td>
-            <td class="player-position-cell">{{ player.position }}</td>
+            <td class="player-team-cell">{{ translateTeam(player.team_name) }}</td>
+            <td class="player-position-cell">{{ translatePosition(player.position) }}</td>
             <td class="player-salary-cell">${{ player.salary.toLocaleString() }}</td>
           </tr>
         </tbody>
@@ -118,6 +116,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import API_CONFIG from '../config/api'
+import { translateTeam, translatePosition } from '../utils/translation'
 
 // 响应式数据
 const players = ref([])
