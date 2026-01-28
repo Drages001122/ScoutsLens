@@ -1,37 +1,12 @@
 import hashlib
-import os
-from datetime import datetime, timedelta
 
-import jwt
 from config import db
 from flask import Blueprint, jsonify, request
 from models import User
+from utils import generate_token, verify_token
 
 # 创建蓝图
 auth_bp = Blueprint("auth", __name__)
-
-# 生成JWT令牌的密钥
-SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key")
-
-
-def generate_token(user_id):
-    """生成JWT令牌"""
-    payload = {
-        "user_id": user_id,
-        "exp": datetime.utcnow() + timedelta(days=7),  # 令牌有效期7天
-    }
-    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-
-
-def verify_token(token):
-    """验证JWT令牌"""
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        return payload["user_id"]
-    except jwt.ExpiredSignatureError:
-        return jsonify({"error": "令牌已过期"}), 401
-    except jwt.InvalidTokenError:
-        return None
 
 
 @auth_bp.route("/register", methods=["POST"])

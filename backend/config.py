@@ -15,6 +15,6 @@ def init_db(app: Flask):
     db.init_app(app)
 
     with app.app_context():
-        from models import PlayerInformation, User
+        from models import PlayerInformation, User, Lineup, LineupPlayer
 
         db.create_all()
