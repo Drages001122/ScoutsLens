@@ -19,7 +19,7 @@
         <tbody>
           <tr v-for="player in players" :key="player.id">
             <td class="player-avatar-cell">
-              <img :src="`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PLAYERS_INFORMATION}/avatar/${player.player_id}`" :alt="player.full_name" onerror="this.src='https://via.placeholder.com/60'">
+              <img :src="`/player_avatars/${player.player_id}.png`" :alt="player.full_name" onerror="this.src='https://via.placeholder.com/60'">
             </td>
             <td class="player-name-cell">{{ player.full_name }}</td>
             <td class="player-team-cell">{{ player.team_name }}</td>
