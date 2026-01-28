@@ -8,10 +8,13 @@
       <!-- 球员列表 -->
       <div class="player-list" v-if="players.length > 0">
         <div class="player-item" v-for="player in players" :key="player.id">
+          <div class="player-avatar">
+            <img :src="`${API_CONFIG.BASE_URL}/api/player_avatar/${player.player_id}`" :alt="player.full_name" onerror="this.src='https://via.placeholder.com/60'">
+          </div>
           <div class="player-info">
             <div class="player-name">{{ player.full_name }}</div>
             <div class="player-details">
-              <span class="team">{{ player.team_abbr }}</span>
+              <span class="team">{{ player.team_name }}</span>
               <span class="position">{{ player.position }}</span>
               <span class="salary">${{ player.salary.toLocaleString() }}</span>
             </div>
@@ -156,8 +159,8 @@ h3 {
   padding: 15px;
   border-bottom: 1px solid #e0e0e0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 15px;
 }
 
 .player-item:last-child {
@@ -166,6 +169,21 @@ h3 {
 
 .player-item:hover {
   background-color: #f5f5f5;
+}
+
+.player-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: #f0f0f0;
+}
+
+.player-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .player-info {
