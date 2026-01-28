@@ -1,15 +1,15 @@
 <template>
   <div class="login-container">
     <div class="login-form">
-      <h2>用户登录</h2>
+      <h2 v-if="!showRegisterForm">用户登录</h2>
       
       <!-- 错误提示 -->
-      <div v-if="errorMessage" class="error-message">
+      <div v-if="errorMessage && !showRegisterForm" class="error-message">
         {{ errorMessage }}
       </div>
       
       <!-- 登录表单 -->
-      <form @submit.prevent="handleLogin">
+      <form v-if="!showRegisterForm" @submit.prevent="handleLogin">
         <div class="form-group">
           <label for="username">用户名</label>
           <input 
@@ -40,16 +40,16 @@
       </form>
       
       <!-- 注册链接 -->
-      <div class="register-link">
+      <div v-if="!showRegisterForm" class="register-link">
         还没有账号？
-        <button class="register-button" @click="showRegisterForm = !showRegisterForm">
-          {{ showRegisterForm ? '返回登录' : '立即注册' }}
+        <button class="register-button" @click="showRegisterForm = true">
+          立即注册
         </button>
       </div>
       
       <!-- 注册表单 -->
       <form v-if="showRegisterForm" @submit.prevent="handleRegister" class="register-form">
-        <h3>用户注册</h3>
+        <h2>用户注册</h2>
         
         <!-- 注册错误提示 -->
         <div v-if="registerErrorMessage" class="error-message">
@@ -90,8 +90,16 @@
         </div>
         
         <div class="form-actions">
-          <button type="submit" class="register-button" :disabled="isRegisterLoading">
+          <button type="submit" class="register-submit-button" :disabled="isRegisterLoading">
             {{ isRegisterLoading ? '注册中...' : '注册' }}
+          </button>
+        </div>
+        
+        <!-- 返回登录链接 -->
+        <div class="back-to-login-link">
+          已有账号？
+          <button class="back-to-login-button" @click="showRegisterForm = false">
+            返回登录
           </button>
         </div>
       </form>
@@ -309,9 +317,51 @@ input:focus {
   text-decoration: underline;
 }
 
+.register-submit-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.register-submit-button:hover {
+  background-color: #1976D2;
+}
+
+.register-submit-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.back-to-login-link {
+  margin-top: 15px;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+}
+
+.back-to-login-button {
+  background: none;
+  border: none;
+  color: #2196F3;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 5px;
+}
+
+.back-to-login-button:hover {
+  text-decoration: underline;
+}
+
 .register-form {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #eee;
+  margin-top: 0;
+  padding-top: 0;
 }
 </style>
