@@ -13,11 +13,14 @@ def get_players():
         per_page = request.args.get("per_page", 10, type=int)
         salary_min = request.args.get("salary_min", 0, type=int)
         salary_max = request.args.get("salary_max", 60000000, type=int)
+        teams = request.args.getlist("teams")
 
         query = PlayerInformation.query.filter(
             PlayerInformation.salary >= salary_min,
             PlayerInformation.salary <= salary_max,
         )
+        if teams:
+            query = query.filter(PlayerInformation.team_name.in_(teams))
 
         total = query.count()
         players = query.order_by(PlayerInformation.salary.desc()).paginate(
