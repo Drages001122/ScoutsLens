@@ -1,5 +1,21 @@
 <template>
   <div class="current-lineup-container">
+    <!-- 薪资信息 -->
+    <div class="salary-info">
+      <div class="salary-info-item">
+        <span class="salary-info-label">已选球员数量</span>
+        <span class="salary-info-value">{{ selectedPlayerCount }}</span>
+      </div>
+      <div class="salary-info-item">
+        <span class="salary-info-label">已选薪资</span>
+        <span class="salary-info-value">${{ selectedSalary.toLocaleString() }}</span>
+      </div>
+      <div class="salary-info-item">
+        <span class="salary-info-label">剩余可支配薪资</span>
+        <span class="salary-info-value" :class="{ 'negative': remainingSalary < 0 }">${{ remainingSalary.toLocaleString() }}</span>
+      </div>
+    </div>
+
     <!-- 首发阵容 -->
     <div class="lineup-section">
       <h4>首发阵容</h4>
@@ -68,6 +84,7 @@
 </template>
 
 <script setup>
+import { ref, computed, onMounted } from 'vue'
 import { translatePosition } from '../utils/translation'
 
 // Props
@@ -84,6 +101,41 @@ const props = defineProps({
 
 // Emits
 const emit = defineEmits(['move-to-bench', 'move-to-starting', 'remove-from-lineup'])
+
+// 状态
+const salaryCap = ref(187895000)
+
+// 计算属性
+const selectedPlayerCount = computed(() => {
+  return props.startingLineup.length + props.benchLineup.length
+})
+
+const selectedSalary = computed(() => {
+  const startingSalary = props.startingLineup.reduce((sum, player) => sum + player.salary, 0)
+  const benchSalary = props.benchLineup.reduce((sum, player) => sum + player.salary, 0)
+  return startingSalary + benchSalary
+})
+
+const remainingSalary = computed(() => {
+  return salaryCap.value - selectedSalary.value
+})
+
+// 获取薪资上限
+const fetchSalaryCap = async () => {
+  try {
+    const response = await fetch('/api/rule/salary_cap')
+    if (response.ok) {
+      const data = await response.json()
+      salaryCap.value = data.salary_cap
+    }
+  } catch (error) {
+    console.error('获取薪资上限失败:', error)
+  }
+}
+
+onMounted(() => {
+  fetchSalaryCap()
+})
 
 // 将球员从首发阵容移动到替补阵容
 const moveToBench = (player) => {
@@ -105,6 +157,39 @@ const removeFromLineup = (player) => {
 .current-lineup-container {
   flex: 1;
   min-width: 0;
+}
+
+.salary-info {
+  display: flex;
+  justify-content: space-between;
+  background-color: #e3f2fd;
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.salary-info-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.salary-info-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.salary-info-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1976d2;
+}
+
+.salary-info-value.negative {
+  color: #f44336;
 }
 
 h4 {
