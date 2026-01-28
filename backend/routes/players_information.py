@@ -20,7 +20,7 @@ def get_players():
         )
 
         total = query.count()
-        players = query.order_by(PlayerInformation.id).paginate(
+        players = query.order_by(PlayerInformation.salary.desc()).paginate(
             page=page, per_page=per_page, error_out=False
         )
         players_list = [player.to_dict() for player in players.items]
