@@ -77,6 +77,16 @@
     
     <!-- 分页控件 -->
     <div class="pagination" v-if="pagination">
+      <div class="per-page-selector">
+        <label>每页数量：</label>
+        <select v-model="perPage" @change="handlePerPageChange">
+          <option value="10">10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+        </select>
+      </div>
       <button 
         class="page-btn" 
         :disabled="currentPage === 1"
@@ -178,6 +188,13 @@ const changePage = (page) => {
   if (page >= 1 && (!pagination.value || page <= pagination.value.total_pages)) {
     fetchPlayers(page)
   }
+}
+
+// 处理每页数量变化
+const handlePerPageChange = () => {
+  // 当每页数量变化时，重置到第一页
+  currentPage.value = 1
+  fetchPlayers(1)
 }
 
 // 将球员添加到替补阵容
@@ -343,8 +360,28 @@ h4 {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 15px;
   margin-top: 20px;
+}
+
+.per-page-selector {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.per-page-selector label {
+  font-size: 14px;
+  color: #666;
+}
+
+.per-page-selector select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: #fff;
+  cursor: pointer;
 }
 
 .page-btn {
