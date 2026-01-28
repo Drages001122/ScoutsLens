@@ -1,6 +1,5 @@
 <template>
   <div class="player-list-container">
-    <h3>NBA球员列表</h3>
     
     <!-- 薪资范围筛选 -->
     <div class="salary-filter">
@@ -137,7 +136,7 @@ const loading = ref(false)
 const error = ref('')
 const pagination = ref(null)
 const currentPage = ref(1)
-const perPage = ref(10)
+const perPage = ref(15)
 const salaryMin = ref(0)
 const salaryMax = ref(6)
 
@@ -214,21 +213,21 @@ h3 {
 
 h4 {
   font-size: 16px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: #333;
 }
 
 .salary-filter {
   background-color: #f8f9fa;
-  padding: 15px;
+  padding: 10px;
   border-radius: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .filter-controls {
   display: flex;
-  gap: 20px;
+  gap: 15px;
   align-items: center;
 }
 
@@ -266,7 +265,7 @@ h4 {
 
 .player-table th,
 .player-table td {
-  padding: 12px;
+  padding: 2px;
   text-align: left;
   border-bottom: 1px solid #e0e0e0;
 }
@@ -275,7 +274,7 @@ h4 {
   background-color: #f8f9fa;
   font-weight: 600;
   color: #333;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .player-table tr:hover {
@@ -283,12 +282,12 @@ h4 {
 }
 
 .player-avatar-cell {
-  width: 80px;
+  width: 60px;
 }
 
 .player-avatar-cell img {
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
   background-color: #f0f0f0;
@@ -297,19 +296,23 @@ h4 {
 .player-name-cell {
   font-weight: 500;
   color: #333;
+  font-size: 15px;
 }
 
 .player-team-cell {
   color: #333;
+  font-size: 15px;
 }
 
 .player-position-cell {
   color: #333;
+  font-size: 15px;
 }
 
 .player-salary-cell {
   font-weight: 500;
   color: #4caf50;
+  font-size: 15px;
 }
 
 .player-action-cell {
