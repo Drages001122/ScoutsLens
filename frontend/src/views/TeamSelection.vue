@@ -59,13 +59,17 @@ const removeFromLineup = (player) => {
 
 <style scoped>
 .page {
-  padding: 20px;
+  padding: 20px 10px;
 }
 
 .content-container {
   display: flex;
-  gap: 30px;
-  max-width: 1400px;
+  gap: 20px;
+  max-width: 100%;
   margin: 0 auto;
+}
+
+.content-container > :deep(*) {
+  flex: 1;
 }
 </style>

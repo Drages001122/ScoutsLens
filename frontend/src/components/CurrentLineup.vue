@@ -105,8 +105,8 @@ const removeFromLineup = (player) => {
 
 <style scoped>
 .current-lineup-container {
-  width: 400px;
-  min-width: 400px;
+  flex: 1;
+  min-width: 0;
 }
 
 h3 {
