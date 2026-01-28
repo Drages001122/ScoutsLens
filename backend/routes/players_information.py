@@ -1,5 +1,6 @@
-from flask import Blueprint, jsonify, request, send_from_directory
 import os
+
+from flask import Blueprint, jsonify, request, send_from_directory
 from models import PlayerInformation
 
 players_information_bp = Blueprint("players_information", __name__)
@@ -34,13 +35,13 @@ def get_players():
 @players_information_bp.route("/api/player_avatar/<int:player_id>", methods=["GET"])
 def get_player_avatar(player_id):
     try:
-        # Get the absolute path to the player_avatars directory
-        avatars_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "database", "player_avatars")
-        
-        # Check if the avatar file exists
+        avatars_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            "database",
+            "player_avatars",
+        )
         avatar_file = f"{player_id}.png"
         avatar_path = os.path.join(avatars_dir, avatar_file)
-        
         if os.path.exists(avatar_path):
             return send_from_directory(avatars_dir, avatar_file)
         else:

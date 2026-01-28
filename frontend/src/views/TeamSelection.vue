@@ -5,22 +5,29 @@
     <div class="player-list-container">
       <h3>NBA球员列表</h3>
       
-      <!-- 球员列表 -->
-      <div class="player-list" v-if="players.length > 0">
-        <div class="player-item" v-for="player in players" :key="player.id">
-          <div class="player-avatar">
-            <img :src="`${API_CONFIG.BASE_URL}/api/player_avatar/${player.player_id}`" :alt="player.full_name" onerror="this.src='https://via.placeholder.com/60'">
-          </div>
-          <div class="player-info">
-            <div class="player-name">{{ player.full_name }}</div>
-            <div class="player-details">
-              <span class="team">{{ player.team_name }}</span>
-              <span class="position">{{ player.position }}</span>
-              <span class="salary">${{ player.salary.toLocaleString() }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- 球员列表表格 -->
+      <table class="player-table" v-if="players.length > 0">
+        <thead>
+          <tr>
+            <th></th>
+            <th>球员</th>
+            <th>球队</th>
+            <th>位置</th>
+            <th>薪资</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="player in players" :key="player.id">
+            <td class="player-avatar-cell">
+              <img :src="`${API_CONFIG.BASE_URL}/api/player_avatar/${player.player_id}`" :alt="player.full_name" onerror="this.src='https://via.placeholder.com/60'">
+            </td>
+            <td class="player-name-cell">{{ player.full_name }}</td>
+            <td class="player-team-cell">{{ player.team_name }}</td>
+            <td class="player-position-cell">{{ player.position }}</td>
+            <td class="player-salary-cell">${{ player.salary.toLocaleString() }}</td>
+          </tr>
+        </tbody>
+      </table>
       
       <!-- 加载状态 -->
       <div class="loading" v-else-if="loading">
@@ -148,77 +155,57 @@ h3 {
   margin: 0 auto;
 }
 
-.player-list {
+.player-table {
+  width: 100%;
+  border-collapse: collapse;
   margin-bottom: 20px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.player-item {
-  padding: 15px;
+.player-table th,
+.player-table td {
+  padding: 12px;
+  text-align: left;
   border-bottom: 1px solid #e0e0e0;
-  display: flex;
-  align-items: center;
-  gap: 15px;
 }
 
-.player-item:last-child {
-  border-bottom: none;
+.player-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
 }
 
-.player-item:hover {
+.player-table tr:hover {
   background-color: #f5f5f5;
 }
 
-.player-avatar {
-  width: 60px;
-  height: 60px;
+.player-avatar-cell {
+  width: 80px;
+}
+
+.player-avatar-cell img {
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
+  object-fit: cover;
   background-color: #f0f0f0;
 }
 
-.player-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.player-info {
-  flex: 1;
-}
-
-.player-name {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 5px;
+.player-name-cell {
+  font-weight: 500;
   color: #333;
 }
 
-.player-details {
-  display: flex;
-  gap: 15px;
-  font-size: 14px;
-  color: #666;
+.player-team-cell {
+  color: #333;
 }
 
-.team {
-  background-color: #f0f0f0;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 500;
+.player-position-cell {
+  color: #333;
 }
 
-.position {
-  background-color: #e3f2fd;
-  padding: 2px 8px;
-  border-radius: 4px;
-  color: #1976d2;
-}
-
-.salary {
+.player-salary-cell {
   font-weight: 500;
   color: #4caf50;
 }
