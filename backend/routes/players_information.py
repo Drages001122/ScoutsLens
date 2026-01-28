@@ -11,8 +11,16 @@ def get_players():
     try:
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 10, type=int)
-        total = PlayerInformation.query.count()
-        players = PlayerInformation.query.order_by(PlayerInformation.id).paginate(
+        salary_min = request.args.get("salary_min", 0, type=int)
+        salary_max = request.args.get("salary_max", 60000000, type=int)
+
+        query = PlayerInformation.query.filter(
+            PlayerInformation.salary >= salary_min,
+            PlayerInformation.salary <= salary_max,
+        )
+
+        total = query.count()
+        players = query.order_by(PlayerInformation.id).paginate(
             page=page, per_page=per_page, error_out=False
         )
         players_list = [player.to_dict() for player in players.items]

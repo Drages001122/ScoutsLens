@@ -5,6 +5,37 @@
     <div class="player-list-container">
       <h3>NBA球员列表</h3>
       
+      <!-- 薪资范围筛选 -->
+      <div class="salary-filter">
+        <h4>薪资范围筛选</h4>
+        <div class="filter-controls">
+          <div class="filter-group">
+            <label>下限：</label>
+            <input 
+              type="number" 
+              v-model.number="salaryMin" 
+              min="0" 
+              max="6" 
+              step="0.1"
+              @change="fetchPlayers(currentPage)"
+            >
+            <span>千万美金</span>
+          </div>
+          <div class="filter-group">
+            <label>上限：</label>
+            <input 
+              type="number" 
+              v-model.number="salaryMax" 
+              min="0" 
+              max="6" 
+              step="0.1"
+              @change="fetchPlayers(currentPage)"
+            >
+            <span>千万美金</span>
+          </div>
+        </div>
+      </div>
+      
       <!-- 球员列表表格 -->
       <table class="player-table" v-if="players.length > 0">
         <thead>
@@ -95,6 +126,8 @@ const error = ref('')
 const pagination = ref(null)
 const currentPage = ref(1)
 const perPage = ref(10)
+const salaryMin = ref(0)
+const salaryMax = ref(6)
 
 // API调用函数
 const fetchPlayers = async (page = 1) => {
@@ -102,7 +135,10 @@ const fetchPlayers = async (page = 1) => {
   error.value = ''
   
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PLAYERS_INFORMATION}/list?page=${page}&per_page=${perPage.value}`)
+    const minSalaryUSD = salaryMin.value * 10000000 // 转换为美金
+    const maxSalaryUSD = salaryMax.value * 10000000 // 转换为美金
+    
+    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PLAYERS_INFORMATION}/list?page=${page}&per_page=${perPage.value}&salary_min=${minSalaryUSD}&salary_max=${maxSalaryUSD}`)
     
     if (!response.ok) {
       throw new Error('API调用失败')
@@ -116,6 +152,7 @@ const fetchPlayers = async (page = 1) => {
     error.value = err.message
     players.value = []
     pagination.value = null
+    currentPage.value = 1
   } finally {
     loading.value = false
   }
@@ -150,9 +187,54 @@ h3 {
   color: #333;
 }
 
+h4 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
 .player-list-container {
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.salary-filter {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filter-controls {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.filter-group input {
+  width: 80px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.filter-group span {
+  font-size: 14px;
+  color: #666;
 }
 
 .player-table {
