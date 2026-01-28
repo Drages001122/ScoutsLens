@@ -265,7 +265,7 @@ h4 {
 
 .player-table th,
 .player-table td {
-  padding: 2px;
+  padding: 12px;
   text-align: left;
   border-bottom: 1px solid #e0e0e0;
 }
