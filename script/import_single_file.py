@@ -1,47 +1,20 @@
 import csv
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Flask
 
-# 添加backend目录到Python路径
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "backend"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "backend"))
 
 from config import db, init_db
 from models import PlayerGameStats
 
-# 创建Flask应用实例
 app = Flask(__name__)
-
-# 初始化数据库
 init_db(app)
 
-FILE_NAME = "nba_player_stats_2026_01_09.csv"
 
-# CSV文件路径
-csv_file_path = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)),
-    "player_stats_data",
-    FILE_NAME,
-)
-
-
-# 从文件名提取游戏日期
-def extract_game_date(file_path):
-    """从CSV文件名提取游戏日期"""
-    file_name = os.path.basename(file_path)
-    # 格式: nba_player_stats_2026_01_09.csv
-    date_str = file_name.split("_")[3:6]  # ['2026', '01', '09']
-    if len(date_str) == 3:
-        year, month, day = date_str[0], date_str[1], date_str[2].split(".")[0]
-        return datetime(int(year), int(month), int(day)).date()
-    return None
-
-
-# 将时间字符串转换为分钟数
 def time_to_minutes(time_str):
-    """将时间字符串 (如 "36:31") 转换为分钟数"""
     if not time_str or time_str == "":
         return 0
     try:
@@ -51,16 +24,24 @@ def time_to_minutes(time_str):
         return 0
 
 
-# 导入CSV数据到数据库
+def extract_game_date(file_path):
+    file_name = os.path.basename(file_path)
+    date_str = file_name.split("_")[3:6]
+    if len(date_str) == 3:
+        year, month, day = date_str[0], date_str[1], date_str[2].split(".")[0]
+        file_date = datetime(int(year), int(month), int(day)).date()
+        game_date = file_date + timedelta(days=1)
+        return game_date
+    return None
+
+
 def import_csv_to_db(csv_path):
-    """将CSV文件数据导入到数据库"""
     game_date = extract_game_date(csv_path)
     if not game_date:
         print("无法从文件名提取游戏日期")
         return
 
     with app.app_context():
-        # 清空该日期的现有数据
         existing_records = PlayerGameStats.query.filter_by(game_date=game_date).all()
         if existing_records:
             print(f"删除 {len(existing_records)} 条现有记录")
@@ -68,7 +49,6 @@ def import_csv_to_db(csv_path):
                 db.session.delete(record)
             db.session.commit()
 
-        # 读取并导入CSV数据
         with open(csv_path, "r", encoding="utf-8-sig") as csvfile:
             reader = csv.DictReader(csvfile)
             total_records = 0
@@ -76,10 +56,8 @@ def import_csv_to_db(csv_path):
 
             for row in reader:
                 try:
-                    # 转换数据
                     minutes = time_to_minutes(row.get("minutes", ""))
 
-                    # 创建新记录
                     stat = PlayerGameStats(
                         personId=int(row.get("personId", 0)),
                         teamName=row.get("teamName", ""),
@@ -106,7 +84,6 @@ def import_csv_to_db(csv_path):
                     db.session.add(stat)
                     total_records += 1
 
-                    # 每100条提交一次
                     if total_records % 100 == 0:
                         db.session.commit()
                         print(f"已提交 {total_records} 条记录")
@@ -116,7 +93,6 @@ def import_csv_to_db(csv_path):
                     skipped_records += 1
                     continue
 
-            # 提交剩余记录
             db.session.commit()
             print(f"导入完成！")
             print(f"成功导入: {total_records} 条记录")
@@ -124,4 +100,5 @@ def import_csv_to_db(csv_path):
 
 
 if __name__ == "__main__":
+    csv_file_path = r"d:\PycharmProjects\ScoutsLens\player_stats_data\nba_player_stats_2026_01_27.csv"
     import_csv_to_db(csv_file_path)

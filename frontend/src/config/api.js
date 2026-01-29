@@ -6,6 +6,7 @@ const API_CONFIG = {
   // API endpoints
   ENDPOINTS: {
     PLAYERS_INFORMATION: '/api/players_information',
+    PLAYERS_GAME_STATS: '/api/players_information/game-stats',
     LINEUP: {
       CREATE: '/api/lineup/create',
       LIST: '/api/lineup/list',
