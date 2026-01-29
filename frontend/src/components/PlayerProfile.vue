@@ -258,9 +258,8 @@ onUnmounted(() => {
 .player-profile-content {
   background-color: white;
   border-radius: 12px;
-  width: 90%;
-  max-width: 800px;
-  max-height: 80vh;
+  width: 90vw;
+  height: 90vh;
   overflow-y: auto;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
@@ -383,8 +382,9 @@ onUnmounted(() => {
   }
   
   .player-profile-content {
-    width: 95%;
-    margin: 20px;
+    width: 90vw;
+    height: 90vh;
+    margin: 0;
   }
 }
 </style>
