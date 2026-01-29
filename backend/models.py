@@ -89,3 +89,50 @@ class LineupPlayer(db.Model):
             "slot": self.slot,
             "is_starting": self.is_starting
         }
+
+
+class PlayerGameStats(db.Model):
+    __tablename__ = "player_game_stats"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    personId = db.Column(db.Integer, nullable=False)
+    teamName = db.Column(db.String(255), nullable=False)
+    minutes = db.Column(db.Integer, nullable=False, default=0)
+    threePointersMade = db.Column(db.Integer, nullable=False, default=0)
+    threePointersAttempted = db.Column(db.Integer, nullable=False, default=0)
+    twoPointersMade = db.Column(db.Integer, nullable=False, default=0)
+    twoPointersAttempted = db.Column(db.Integer, nullable=False, default=0)
+    freeThrowsMade = db.Column(db.Integer, nullable=False, default=0)
+    freeThrowsAttempted = db.Column(db.Integer, nullable=False, default=0)
+    reboundsOffensive = db.Column(db.Integer, nullable=False, default=0)
+    reboundsDefensive = db.Column(db.Integer, nullable=False, default=0)
+    assists = db.Column(db.Integer, nullable=False, default=0)
+    steals = db.Column(db.Integer, nullable=False, default=0)
+    blocks = db.Column(db.Integer, nullable=False, default=0)
+    turnovers = db.Column(db.Integer, nullable=False, default=0)
+    foulsPersonal = db.Column(db.Integer, nullable=False, default=0)
+    IS_WINNER = db.Column(db.Boolean, nullable=False, default=False)
+    game_date = db.Column(db.Date, nullable=False)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "personId": self.personId,
+            "teamName": self.teamName,
+            "minutes": self.minutes,
+            "threePointersMade": self.threePointersMade,
+            "threePointersAttempted": self.threePointersAttempted,
+            "twoPointersMade": self.twoPointersMade,
+            "twoPointersAttempted": self.twoPointersAttempted,
+            "freeThrowsMade": self.freeThrowsMade,
+            "freeThrowsAttempted": self.freeThrowsAttempted,
+            "reboundsOffensive": self.reboundsOffensive,
+            "reboundsDefensive": self.reboundsDefensive,
+            "assists": self.assists,
+            "steals": self.steals,
+            "blocks": self.blocks,
+            "turnovers": self.turnovers,
+            "foulsPersonal": self.foulsPersonal,
+            "IS_WINNER": self.IS_WINNER,
+            "game_date": self.game_date.isoformat() if self.game_date else None
+        }
