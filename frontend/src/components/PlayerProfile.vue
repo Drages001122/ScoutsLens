@@ -97,15 +97,16 @@ const loadChart = async () => {
     console.log('返回的数据:', data)
     const gameStats = data.game_stats || []
     
-    // 准备图表数据
-    const dates = gameStats.map(game => game.game_date)
-    const ratings = gameStats.map(game => game.score)
+    // 准备图表数据 - 处理为每日一格的格式
+    let matchData
+    if (gameStats.length > 0) {
+      matchData = processDailyGameData(gameStats)
+    } else {
+      matchData = generateMockMatchData()
+    }
     
-    console.log('图表数据 - 日期:', dates)
-    console.log('图表数据 - 评分:', ratings)
-    
-    // 如果没有数据，使用模拟数据
-    const matchData = dates.length > 0 ? { dates, ratings } : generateMockMatchData()
+    console.log('图表数据 - 日期:', matchData.dates)
+    console.log('图表数据 - 评分:', matchData.ratings)
     
     // 动态导入Chart.js及其组件
     const chartModule = await import('chart.js')
@@ -125,7 +126,8 @@ const loadChart = async () => {
           borderColor: '#667eea',
           backgroundColor: 'rgba(102, 126, 234, 0.1)',
           tension: 0.4,
-          fill: true
+          fill: true,
+          spanGaps: true // 不连接缺失的数据点
         }]
       },
       options: {
@@ -134,8 +136,8 @@ const loadChart = async () => {
         scales: {
           y: {
             beginAtZero: false,
-            min: 0,
-            max: 10,
+            min: -5,
+            max: 30,
             title: {
               display: true,
               text: '评分'
@@ -145,6 +147,10 @@ const loadChart = async () => {
             title: {
               display: true,
               text: '日期'
+            },
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45
             }
           }
         }
@@ -170,7 +176,8 @@ const loadChart = async () => {
             borderColor: '#667eea',
             backgroundColor: 'rgba(102, 126, 234, 0.1)',
             tension: 0.4,
-            fill: true
+            fill: true,
+            spanGaps: false // 不连接缺失的数据点
           }]
         },
         options: {
@@ -179,8 +186,8 @@ const loadChart = async () => {
           scales: {
             y: {
               beginAtZero: false,
-              min: 0,
-              max: 10,
+              min: -5,
+              max: 30,
               title: {
                 display: true,
                 text: '评分'
@@ -190,6 +197,10 @@ const loadChart = async () => {
               title: {
                 display: true,
                 text: '日期'
+              },
+              ticks: {
+                maxRotation: 45,
+                minRotation: 45
               }
             }
           }
@@ -201,19 +212,77 @@ const loadChart = async () => {
   }
 }
 
+// 处理游戏数据为每日一格的格式
+const processDailyGameData = (gameStats) => {
+  if (!gameStats || gameStats.length === 0) {
+    return { dates: [], ratings: [] }
+  }
+  
+  // 找出日期范围
+  const gameDates = gameStats.map(game => new Date(game.game_date))
+  const minDate = new Date(Math.min(...gameDates))
+  const maxDate = new Date(Math.max(...gameDates))
+  
+  // 创建日期映射
+  const dateMap = {}
+  gameStats.forEach(game => {
+    dateMap[game.game_date] = game.score
+  })
+  
+  // 生成完整的日期范围
+  const dates = []
+  const ratings = []
+  const currentDate = new Date(minDate)
+  
+  while (currentDate <= maxDate) {
+    const dateStr = currentDate.toISOString().split('T')[0]
+    const displayDate = currentDate.toLocaleDateString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit'
+    })
+    
+    dates.push(displayDate)
+    // 如果当天有数据则使用数据，否则为null
+    ratings.push(dateMap[dateStr] || null)
+    
+    // 移动到下一天
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+  
+  return { dates, ratings }
+}
+
 // 模拟比赛数据
 const generateMockMatchData = () => {
   const dates = []
   const ratings = []
   const today = new Date()
   
-  // 生成过去10场比赛的数据
-  for (let i = 9; i >= 0; i--) {
-    const date = new Date(today)
-    date.setDate(date.getDate() - i * 3) // 每3天一场比赛
-    dates.push(date.toLocaleDateString())
-    // 生成6-10之间的随机评分
-    ratings.push((Math.random() * 4 + 6).toFixed(1))
+  // 生成过去30天的数据范围
+  const startDate = new Date(today)
+  startDate.setDate(startDate.getDate() - 29)
+  
+  const currentDate = new Date(startDate)
+  
+  while (currentDate <= today) {
+    const displayDate = currentDate.toLocaleDateString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit'
+    })
+    dates.push(displayDate)
+    
+    // 随机决定当天是否有比赛（约30%的概率有比赛）
+    const hasGame = Math.random() < 0.3
+    if (hasGame) {
+      // 生成6-10之间的随机评分
+      ratings.push((Math.random() * 4 + 6).toFixed(1))
+    } else {
+      // 没有比赛，数据为null
+      ratings.push(null)
+    }
+    
+    // 移动到下一天
+    currentDate.setDate(currentDate.getDate() + 1)
   }
   
   return { dates, ratings }
@@ -360,7 +429,7 @@ onUnmounted(() => {
 
 .chart-container {
   width: 100%;
-  height: 300px;
+  height: 450px;
   position: relative;
 }
 
