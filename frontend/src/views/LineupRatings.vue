@@ -85,6 +85,10 @@
                           :src="`/player_avatars/${player.player_id}.png`" 
                           :alt="player.full_name"
                           @error="handleImageError"
+                          @click="openPlayerProfile(player)"
+                          style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                          @mouseover="$event.target.style.transform = 'scale(1.1)'; $event.target.style.boxShadow = '0 0 10px rgba(102, 126, 234, 0.5)'"
+                          @mouseout="$event.target.style.transform = 'scale(1)'; $event.target.style.boxShadow = 'none'"
                         >
                       </td>
                       <td class="player-name">{{ player.full_name }}</td>
@@ -149,6 +153,10 @@
                           :src="`/player_avatars/${player.player_id}.png`" 
                           :alt="player.full_name"
                           @error="handleImageError"
+                          @click="openPlayerProfile(player)"
+                          style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                          @mouseover="$event.target.style.transform = 'scale(1.1)'; $event.target.style.boxShadow = '0 0 10px rgba(102, 126, 234, 0.5)'"
+                          @mouseout="$event.target.style.transform = 'scale(1)'; $event.target.style.boxShadow = 'none'"
                         >
                       </td>
                       <td class="player-name">{{ player.full_name }}</td>
@@ -185,10 +193,19 @@
     <div v-else-if="lineups.length === 0" class="no-lineups">
       <p>该日期暂无阵容</p>
     </div>
+    
+    <!-- 球员个人介绍弹窗 -->
+    <PlayerProfile 
+      :visible="showPlayerProfile"
+      :player="selectedPlayer"
+      @close="closePlayerProfile"
+    />
   </div>
 </template>
 
 <script>
+import PlayerProfile from '../components/PlayerProfile.vue';
+
 export default {
   name: 'LineupRatings',
   data() {
@@ -198,7 +215,10 @@ export default {
       loading: false,
       error: null,
       expandedLineupId: null,
-      playerStats: {} // 存储球员统计数据，格式：{playerId: stats}
+      playerStats: {}, // 存储球员统计数据，格式：{playerId: stats}
+      // 球员个人介绍相关状态
+      showPlayerProfile: false,
+      selectedPlayer: null
     }
   },
   computed: {
@@ -321,7 +341,20 @@ export default {
       
       // 总评分
       return startingPlayersScore + benchPlayersScore
+    },
+    // 打开球员个人介绍弹窗
+    openPlayerProfile(player) {
+      this.selectedPlayer = player;
+      this.showPlayerProfile = true;
+    },
+    // 关闭球员个人介绍弹窗
+    closePlayerProfile() {
+      this.showPlayerProfile = false;
+      this.selectedPlayer = null;
     }
+  },
+  components: {
+    PlayerProfile
   }
 }
 </script>

@@ -99,11 +99,7 @@ const loadChart = async () => {
     
     // 准备图表数据 - 处理为每日一格的格式
     let matchData
-    if (gameStats.length > 0) {
-      matchData = processDailyGameData(gameStats)
-    } else {
-      matchData = generateMockMatchData()
-    }
+    matchData = processDailyGameData(gameStats)
     
     console.log('图表数据 - 日期:', matchData.dates)
     console.log('图表数据 - 评分:', matchData.ratings)

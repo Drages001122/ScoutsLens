@@ -86,6 +86,10 @@
                 :src="`/player_avatars/${player.player_id}.png`" 
                 :alt="`${player.player_name}的头像`"
                 @error="handleImageError"
+                @click="openPlayerProfile(player)"
+                style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                @mouseover="$event.target.style.transform = 'scale(1.1)'; $event.target.style.boxShadow = '0 0 10px rgba(102, 126, 234, 0.5)'"
+                @mouseout="$event.target.style.transform = 'scale(1)'; $event.target.style.boxShadow = 'none'"
               />
             </td>
             <td class="player-name">{{ player.player_name }}</td>
@@ -152,6 +156,13 @@
     <div v-else class="no-data">
       <p>该日期暂无数据</p>
     </div>
+    
+    <!-- 球员个人介绍弹窗 -->
+    <PlayerProfile 
+      :visible="showPlayerProfile"
+      :player="selectedPlayer"
+      @close="closePlayerProfile"
+    />
   </div>
 </template>
 
@@ -160,6 +171,7 @@ import { ref, onMounted } from 'vue';
 import API_CONFIG from '../config/api.js';
 import translations from '../data/translations.json';
 import { translatePosition } from '../utils/translation';
+import PlayerProfile from '../components/PlayerProfile.vue';
 
 const apiConfig = API_CONFIG;
 
@@ -173,6 +185,9 @@ const currentPage = ref(1);
 const perPage = ref(10);
 const totalPages = ref(1);
 const totalItems = ref(0);
+// 球员个人介绍相关状态
+const showPlayerProfile = ref(false);
+const selectedPlayer = ref(null);
 
 // 初始化
 onMounted(() => {
@@ -275,6 +290,21 @@ const goToNextPage = () => {
     currentPage.value++;
     fetchPlayerStats();
   }
+};
+
+// 打开球员个人介绍弹窗
+const openPlayerProfile = (player) => {
+  selectedPlayer.value = {
+    ...player,
+    full_name: player.player_name
+  };
+  showPlayerProfile.value = true;
+};
+
+// 关闭球员个人介绍弹窗
+const closePlayerProfile = () => {
+  showPlayerProfile.value = false;
+  selectedPlayer.value = null;
 };
 </script>
 
