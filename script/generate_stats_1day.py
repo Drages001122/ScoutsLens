@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 
-# 设置日期
+# 设置日期（美国时间）
 TARGET_DATE = "2026-01-28"
 
 

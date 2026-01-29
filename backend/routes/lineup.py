@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
-from models import Lineup, LineupPlayer, db
+from models import Lineup, LineupPlayer, User, db
 from routes.rule import SALARY_CAP
 from rule import PlayerCountRule, SalaryRule
 from utils import get_current_user_id
@@ -167,4 +167,44 @@ def delete_lineup(lineup_id):
 
     except Exception as e:
         db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@lineup_bp.route("/by-date", methods=["GET"])
+def get_lineups_by_date():
+    """
+    根据日期获取所有用户的阵容
+    """
+    try:
+        user_id = get_current_user_id()
+        if not user_id:
+            return jsonify({"error": "未授权，请先登录"}), 401
+
+        date_str = request.args.get("date")
+        if not date_str:
+            return jsonify({"error": "日期参数不能为空"}), 400
+
+        try:
+            date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            return jsonify({"error": "日期格式不正确，请使用 YYYY-MM-DD 格式"}), 400
+
+        # 获取指定日期的所有阵容
+        lineups = Lineup.query.filter_by(date=date).order_by(Lineup.created_at.desc()).all()
+
+        # 为每个阵容添加用户名
+        result = []
+        for lineup in lineups:
+            lineup_dict = lineup.to_dict()
+            # 获取用户信息
+            user = User.query.get(lineup.user_id)
+            if user:
+                lineup_dict["username"] = user.username
+            else:
+                lineup_dict["username"] = "未知用户"
+            result.append(lineup_dict)
+
+        return jsonify({"lineups": result}), 200
+
+    except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -100,5 +100,5 @@ def import_csv_to_db(csv_path):
 
 
 if __name__ == "__main__":
-    csv_file_path = r"d:\PycharmProjects\ScoutsLens\player_stats_data\nba_player_stats_2026_01_27.csv"
+    csv_file_path = r"d:\PycharmProjects\ScoutsLens\player_stats_data\nba_player_stats_2026_01_28.csv"
     import_csv_to_db(csv_file_path)
