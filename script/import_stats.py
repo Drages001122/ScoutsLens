@@ -1,13 +1,14 @@
+import csv
 import os
 import sys
-import csv
 from datetime import datetime
+
 from flask import Flask
 
 # 添加backend目录到Python路径
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "backend"))
 
-from config import init_db, db
+from config import db, init_db
 from models import PlayerGameStats
 
 # 创建Flask应用实例
@@ -16,11 +17,13 @@ app = Flask(__name__)
 # 初始化数据库
 init_db(app)
 
+FILE_NAME = "nba_player_stats_2026_01_09.csv"
+
 # CSV文件路径
 csv_file_path = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
     "player_stats_data",
-    "nba_player_stats_2026_01_09.csv"
+    FILE_NAME,
 )
 
 

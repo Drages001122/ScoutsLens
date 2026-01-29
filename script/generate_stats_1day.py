@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 # 设置日期
-TARGET_DATE = "2026-01-09"
+TARGET_DATE = "2026-01-28"
 
 
 def get_games_by_date(date):
