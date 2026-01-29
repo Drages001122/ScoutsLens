@@ -115,6 +115,18 @@ const loadChart = async () => {
     // 注册必要的组件
     Chart.register(LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend)
     
+    // 计算y轴上下限
+    const validRatings = matchData.ratings.filter(rating => rating !== null && !isNaN(rating))
+    let yMin = -5
+    let yMax = 30
+    
+    if (validRatings.length > 0) {
+      const minValue = Math.min(...validRatings)
+      const maxValue = Math.max(...validRatings)
+      yMin = minValue - 3
+      yMax = maxValue + 3
+    }
+    
     // 创建图表
     chartInstance.value = new Chart(ratingChart.value, {
       type: 'line',
@@ -136,8 +148,8 @@ const loadChart = async () => {
         scales: {
           y: {
             beginAtZero: false,
-            min: -5,
-            max: 30,
+            min: yMin,
+            max: yMax,
             title: {
               display: true,
               text: '评分'
@@ -166,6 +178,18 @@ const loadChart = async () => {
       
       // 注册必要的组件
       Chart.register(LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend)
+      // 计算y轴上下限
+      const validRatings = matchData.ratings.filter(rating => rating !== null && !isNaN(rating))
+      let yMin = -5
+      let yMax = 30
+      
+      if (validRatings.length > 0) {
+        const minValue = Math.min(...validRatings)
+        const maxValue = Math.max(...validRatings)
+        yMin = minValue - 3
+        yMax = maxValue + 3
+      }
+      
       chartInstance.value = new Chart(ratingChart.value, {
         type: 'line',
         data: {
@@ -186,8 +210,8 @@ const loadChart = async () => {
           scales: {
             y: {
               beginAtZero: false,
-              min: -5,
-              max: 30,
+              min: yMin,
+              max: yMax,
               title: {
                 display: true,
                 text: '评分'
