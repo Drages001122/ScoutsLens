@@ -345,7 +345,6 @@ onMounted(() => {
   fetchPlayers()
 })
 </script>
-
 <style scoped>
 .player-list-container {
   flex: 1;

@@ -10,7 +10,6 @@
         id="date" 
         v-model="selectedDate"
         @change="fetchLineups"
-        :max="today"
       >
     </div>
     
