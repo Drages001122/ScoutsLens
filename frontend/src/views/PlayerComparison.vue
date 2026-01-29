@@ -405,6 +405,29 @@ const updateChart = async () => {
       ? comparisonData.value[comparisonPlayers.value[0].player_id]?.dates || []
       : []
     
+    // 计算y轴上下限 - 基于所有球员的数据点
+    const allRatings = []
+    comparisonPlayers.value.forEach(player => {
+      const playerData = comparisonData.value[player.player_id]
+      if (playerData && playerData.ratings) {
+        playerData.ratings.forEach(rating => {
+          if (rating !== null && !isNaN(rating)) {
+            allRatings.push(parseFloat(rating))
+          }
+        })
+      }
+    })
+    
+    let yMin = -5
+    let yMax = 30
+    
+    if (allRatings.length > 0) {
+      const minValue = Math.min(...allRatings)
+      const maxValue = Math.max(...allRatings)
+      yMin = minValue - 3
+      yMax = maxValue + 3
+    }
+    
     // 创建图表
     chartInstance.value = new Chart(comparisonChart.value, {
       type: 'line',
@@ -418,8 +441,8 @@ const updateChart = async () => {
         scales: {
           y: {
             beginAtZero: false,
-            min: 0,
-            max: 15,
+            min: yMin,
+            max: yMax,
             title: {
               display: true,
               text: '评分'
