@@ -94,20 +94,20 @@
                       <td>${{ player.salary.toLocaleString() }}</td>
                       <td class="player-slot">{{ player.slot }}</td>
                       <td class="score">{{ this.playerStats[player.player_id]?.score ? this.playerStats[player.player_id].score.toFixed(1) : '0' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.minutes ? this.formatMinutes(this.playerStats[player.player_id].minutes) : '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.points || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.three_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].three_pointers_made, this.playerStats[player.player_id].three_pointers_attempted) : '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.two_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].two_pointers_made, this.playerStats[player.player_id].two_pointers_attempted) : '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.free_throws_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].free_throws_made, this.playerStats[player.player_id].free_throws_attempted) : '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.offensive_rebounds || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.defensive_rebounds || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.assists || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.steals || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.blocks || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.turnovers || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.personal_fouls || '-' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.minutes ? this.formatMinutes(this.playerStats[player.player_id].minutes) : '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.points || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.three_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].three_pointers_made, this.playerStats[player.player_id].three_pointers_attempted) : '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.two_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].two_pointers_made, this.playerStats[player.player_id].two_pointers_attempted) : '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.free_throws_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].free_throws_made, this.playerStats[player.player_id].free_throws_attempted) : '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.offensive_rebounds || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.defensive_rebounds || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.assists || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.steals || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.blocks || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.turnovers || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.personal_fouls || '0' }}</td>
                       <td :class="this.playerStats[player.player_id]?.team_won !== undefined ? (this.playerStats[player.player_id].team_won ? 'won' : 'lost') : ''">
-                        {{ this.playerStats[player.player_id]?.team_won !== undefined ? (this.playerStats[player.player_id].team_won ? '胜' : '负') : '-' }}
+                        {{ this.playerStats[player.player_id]?.team_won !== undefined ? (this.playerStats[player.player_id].team_won ? '胜' : '负') : '0' }}
                       </td>
                     </tr>
                   </tbody>
@@ -157,20 +157,20 @@
                       <td>{{ player.position }}</td>
                       <td>${{ player.salary.toLocaleString() }}</td>
                       <td class="score">{{ this.playerStats[player.player_id]?.score ? this.playerStats[player.player_id].score.toFixed(1) : '0' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.minutes ? this.formatMinutes(this.playerStats[player.player_id].minutes) : '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.points || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.three_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].three_pointers_made, this.playerStats[player.player_id].three_pointers_attempted) : '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.two_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].two_pointers_made, this.playerStats[player.player_id].two_pointers_attempted) : '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.free_throws_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].free_throws_made, this.playerStats[player.player_id].free_throws_attempted) : '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.offensive_rebounds || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.defensive_rebounds || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.assists || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.steals || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.blocks || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.turnovers || '-' }}</td>
-                      <td>{{ this.playerStats[player.player_id]?.personal_fouls || '-' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.minutes ? this.formatMinutes(this.playerStats[player.player_id].minutes) : '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.points || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.three_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].three_pointers_made, this.playerStats[player.player_id].three_pointers_attempted) : '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.two_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].two_pointers_made, this.playerStats[player.player_id].two_pointers_attempted) : '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.free_throws_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].free_throws_made, this.playerStats[player.player_id].free_throws_attempted) : '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.offensive_rebounds || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.defensive_rebounds || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.assists || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.steals || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.blocks || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.turnovers || '0' }}</td>
+                      <td>{{ this.playerStats[player.player_id]?.personal_fouls || '0' }}</td>
                       <td :class="this.playerStats[player.player_id]?.team_won !== undefined ? (this.playerStats[player.player_id].team_won ? 'won' : 'lost') : ''">
-                        {{ this.playerStats[player.player_id]?.team_won !== undefined ? (this.playerStats[player.player_id].team_won ? '胜' : '负') : '-' }}
+                        {{ this.playerStats[player.player_id]?.team_won !== undefined ? (this.playerStats[player.player_id].team_won ? '胜' : '负') : '0' }}
                       </td>
                     </tr>
                   </tbody>
@@ -239,6 +239,8 @@ export default {
     },
     formatDate(dateString) {
       const date = new Date(dateString)
+      // 加上 8 小时（UTC+8 时区）
+      date.setHours(date.getHours() + 8)
       return date.toLocaleString('zh-CN', {
         year: 'numeric',
         month: '2-digit',
@@ -296,8 +298,7 @@ export default {
     },
     formatMinutes(minutes) {
       const mins = Math.floor(minutes)
-      const secs = Math.round((minutes - mins) * 60)
-      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      return mins.toString()
     },
     formatShootingStats(made, attempted) {
       return `${made}/${attempted}`
