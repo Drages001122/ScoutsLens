@@ -96,7 +96,13 @@
       <tbody>
         <tr v-for="player in players" :key="player.id">
           <td class="player-avatar-cell">
-            <img :src="`/player_avatars/${player.player_id}.png`" :alt="player.full_name" onerror="this.src='https://via.placeholder.com/60'">
+            <img 
+              :src="`/player_avatars/${player.player_id}.png`" 
+              :alt="player.full_name" 
+              onerror="this.src='https://via.placeholder.com/60'"
+              class="player-avatar"
+              @click="openPlayerProfile(player)"
+            >
           </td>
           <td class="player-name-cell">{{ player.full_name }}</td>
           <td class="player-team-cell">{{ translateTeam(player.team_name) }}</td>
@@ -170,6 +176,13 @@
         末页
       </button>
     </div>
+    
+    <!-- 球员个人介绍弹窗 -->
+    <PlayerProfile 
+      :visible="showPlayerProfile"
+      :player="selectedPlayer"
+      @close="closePlayerProfile"
+    />
   </div>
 </template>
 
@@ -178,6 +191,7 @@ import { ref, onMounted, watch } from 'vue'
 import API_CONFIG from '../config/api'
 import { translateTeam, translatePosition } from '../utils/translation'
 import translations from '../data/translations.json'
+import PlayerProfile from './PlayerProfile.vue'
 
 // Props
 const props = defineProps({
@@ -202,6 +216,9 @@ const salaryMax = ref(6)
 const selectedTeams = ref([])
 const teams = ref(translations.teams)
 const showTeamModal = ref(false)
+// 球员个人介绍相关状态
+const showPlayerProfile = ref(false)
+const selectedPlayer = ref(null)
 
 // 球队名称到图片文件名的映射
 const teamLogoMap = {
@@ -333,6 +350,18 @@ const selectAllTeams = () => {
 const confirmTeamSelection = () => {
   fetchPlayers(currentPage.value)
   closeTeamModal()
+}
+
+// 打开球员个人介绍弹窗
+const openPlayerProfile = (player) => {
+  selectedPlayer.value = player
+  showPlayerProfile.value = true
+}
+
+// 关闭球员个人介绍弹窗
+const closePlayerProfile = () => {
+  showPlayerProfile.value = false
+  selectedPlayer.value = null
 }
 
 // 监听excludePlayers变化，重新获取数据
@@ -468,12 +497,19 @@ h4 {
   width: 60px;
 }
 
-.player-avatar-cell img {
+.player-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
   background-color: #f0f0f0;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.player-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
 }
 
 .player-name-cell {

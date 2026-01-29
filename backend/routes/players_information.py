@@ -54,21 +54,21 @@ def get_player_game_stats():
         sort_order = request.args.get("sort_order", "desc")
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 10, type=int)
-        
+
         if not game_date:
             return jsonify({"error": "game_date is required"}), 400
-        
+
         # 转换日期格式
         try:
             game_date_obj = date.fromisoformat(game_date)
         except ValueError:
             return jsonify({"error": "Invalid date format, use YYYY-MM-DD"}), 400
-        
+
         # 查询指定日期的球员统计数据
         stats = PlayerGameStats.query.filter(
             PlayerGameStats.game_date == game_date_obj
         ).all()
-        
+
         # 计算每个球员的评分
         players_with_score = []
         for stat in stats:
@@ -82,7 +82,8 @@ def get_player_game_stats():
                 assists=stat.assists,
                 steals=stat.steals,
                 blocks=stat.blocks,
-                field_goals_attempted=stat.threePointersAttempted + stat.twoPointersAttempted,
+                field_goals_attempted=stat.threePointersAttempted
+                + stat.twoPointersAttempted,
                 field_goals_made=stat.threePointersMade + stat.twoPointersMade,
                 free_throws_attempted=stat.freeThrowsAttempted,
                 turnovers=stat.turnovers,
@@ -90,14 +91,22 @@ def get_player_game_stats():
                 team_won=stat.IS_WINNER,
                 minutes_played=stat.minutes,
             )
-            
+
             # 获取球员名字
-            player_info = PlayerInformation.query.filter_by(player_id=stat.personId).first()
-            player_name = player_info.full_name if player_info else f"Player {stat.personId}"
-            
+            player_info = PlayerInformation.query.filter_by(
+                player_id=stat.personId
+            ).first()
+            player_name = (
+                player_info.full_name if player_info else f"Player {stat.personId}"
+            )
+
             # 计算得分
-            points = stat.threePointersMade * 3 + stat.twoPointersMade * 2 + stat.freeThrowsMade
-            
+            points = (
+                stat.threePointersMade * 3
+                + stat.twoPointersMade * 2
+                + stat.freeThrowsMade
+            )
+
             # 构建球员数据
             player_data = {
                 "player_id": stat.personId,
@@ -121,38 +130,83 @@ def get_player_game_stats():
                 "personal_fouls": stat.foulsPersonal,
                 "team_won": stat.IS_WINNER,
                 "points": points,
-                "score": score
+                "score": score,
             }
             players_with_score.append(player_data)
-        
+
         # 排序
         if sort_by == "score":
             players_with_score.sort(
-                key=lambda x: x["score"],
-                reverse=(sort_order == "desc")
+                key=lambda x: x["score"], reverse=(sort_order == "desc")
             )
         elif sort_by == "points":
             players_with_score.sort(
-                key=lambda x: x["points"],
-                reverse=(sort_order == "desc")
+                key=lambda x: x["points"], reverse=(sort_order == "desc")
             )
-        
+
         # 分页
         total_players = len(players_with_score)
         total_pages = (total_players + per_page - 1) // per_page
         start_idx = (page - 1) * per_page
         end_idx = start_idx + per_page
         paginated_players = players_with_score[start_idx:end_idx]
-        
-        return jsonify({
-            "players": paginated_players,
-            "game_date": game_date,
-            "pagination": {
-                "current_page": page,
-                "per_page": per_page,
-                "total_items": total_players,
-                "total_pages": total_pages,
+
+        return jsonify(
+            {
+                "players": paginated_players,
+                "game_date": game_date,
+                "pagination": {
+                    "current_page": page,
+                    "per_page": per_page,
+                    "total_items": total_players,
+                    "total_pages": total_pages,
+                },
             }
-        })
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@players_information_bp.route("/player/<int:player_id>/game-stats", methods=["GET"])
+def get_player_game_stats_by_id(player_id):
+    try:
+        # 查询指定球员的所有比赛统计数据
+        stats = (
+            PlayerGameStats.query.filter(PlayerGameStats.personId == player_id)
+            .order_by(PlayerGameStats.game_date)
+            .all()
+        )
+
+        # 计算每个比赛的评分
+        game_stats = []
+        for stat in stats:
+            # 计算评分
+            rating = calculate_player_score(
+                three_pointers=stat.threePointersMade,
+                two_pointers=stat.twoPointersMade,
+                free_throws=stat.freeThrowsMade,
+                offensive_rebounds=stat.reboundsOffensive,
+                defensive_rebounds=stat.reboundsDefensive,
+                assists=stat.assists,
+                steals=stat.steals,
+                blocks=stat.blocks,
+                field_goals_attempted=stat.threePointersAttempted
+                + stat.twoPointersAttempted,
+                field_goals_made=stat.threePointersMade + stat.twoPointersMade,
+                free_throws_attempted=stat.freeThrowsAttempted,
+                turnovers=stat.turnovers,
+                personal_fouls=stat.foulsPersonal,
+                team_won=stat.IS_WINNER,
+                minutes_played=stat.minutes,
+            )
+
+            # 构建比赛数据
+            game_data = {
+                "game_date": stat.game_date.isoformat() if stat.game_date else None,
+                "score": rating,
+            }
+            game_stats.append(game_data)
+
+        return jsonify({"player_id": player_id, "game_stats": game_stats})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

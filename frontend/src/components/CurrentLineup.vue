@@ -36,6 +36,7 @@
               :alt="startingSlots[slot].full_name" 
               class="player-avatar"
               onerror="this.src='https://via.placeholder.com/60'"
+              @click="openPlayerProfile(startingSlots[slot])"
             >
             <div class="player-info">
               <div class="player-name">{{ startingSlots[slot].full_name }}</div>
@@ -69,7 +70,13 @@
         <tbody>
           <tr v-for="player in benchLineup" :key="player.id">
             <td class="player-avatar-cell">
-              <img :src="`/player_avatars/${player.player_id}.png`" :alt="player.full_name" onerror="this.src='https://via.placeholder.com/60'">
+              <img 
+                :src="`/player_avatars/${player.player_id}.png`" 
+                :alt="player.full_name" 
+                onerror="this.src='https://via.placeholder.com/60'"
+                class="player-avatar"
+                @click="openPlayerProfile(player)"
+              >
             </td>
             <td class="player-name-cell">{{ player.full_name }}</td>
             <td class="player-team-cell">{{ translateTeam(player.team_name) }}</td>
@@ -106,6 +113,13 @@
         <button class="modal-close-btn" @click="closeSlotModal">取消</button>
       </div>
     </div>
+    
+    <!-- 球员个人介绍弹窗 -->
+    <PlayerProfile 
+      :visible="showPlayerProfile"
+      :player="profilePlayer"
+      @close="closePlayerProfile"
+    />
   </div>
 </template>
 
@@ -113,6 +127,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { translatePosition, translateTeam } from '../utils/translation'
 import { getAvailableSlots, slotNames, slotOrder } from '../utils/positionMapping'
+import PlayerProfile from './PlayerProfile.vue'
 
 // Props
 const props = defineProps({
@@ -134,6 +149,9 @@ const salaryCap = ref(187895000)
 const showSlotModal = ref(false)
 const selectedPlayer = ref(null)
 const availableSlots = ref([])
+// 球员个人介绍相关状态
+const showPlayerProfile = ref(false)
+const profilePlayer = ref(null)
 
 // 计算属性
 const selectedPlayerCount = computed(() => {
@@ -213,6 +231,18 @@ const selectSlot = (slot) => {
 // 将球员从替补阵容移出阵容
 const removeFromLineup = (player) => {
   emit('remove-from-lineup', player)
+}
+
+// 打开球员个人介绍弹窗
+const openPlayerProfile = (player) => {
+  profilePlayer.value = player
+  showPlayerProfile.value = true
+}
+
+// 关闭球员个人介绍弹窗
+const closePlayerProfile = () => {
+  showPlayerProfile.value = false
+  profilePlayer.value = null
 }
 </script>
 
@@ -334,6 +364,13 @@ h4 {
   object-fit: cover;
   background-color: #f0f0f0;
   border: 3px solid #667eea;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.player-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
 }
 
 .slot-player .player-info {
@@ -408,12 +445,20 @@ h4 {
   width: 80px;
 }
 
-.player-avatar-cell img {
+.player-avatar-cell .player-avatar {
   width: 50px;
   height: 50px;
   border-radius: 50%;
   object-fit: cover;
   background-color: #f0f0f0;
+  border: 3px solid #667eea;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.player-avatar-cell .player-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
 }
 
 .player-name-cell {
