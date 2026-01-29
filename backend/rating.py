@@ -22,11 +22,11 @@ def calculate_player_score(
         + offensive_rebounds
         + (defensive_rebounds * 0.7)
         + assists
-        + steals
-        + blocks
+        + (steals * 1.2)
+        + (blocks * 1.2)
         - ((field_goals_attempted - field_goals_made) * 0.7)
         - ((free_throws_attempted - free_throws) * 0.4)
-        - turnovers
+        - (turnovers * 1.2)
         - (personal_fouls * 0.4)
     )
     if minutes_played > 0:

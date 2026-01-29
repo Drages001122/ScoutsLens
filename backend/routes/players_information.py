@@ -52,6 +52,8 @@ def get_player_game_stats():
         game_date = request.args.get("game_date")
         sort_by = request.args.get("sort_by", "score")
         sort_order = request.args.get("sort_order", "desc")
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 10, type=int)
         
         if not game_date:
             return jsonify({"error": "game_date is required"}), 400
@@ -89,14 +91,27 @@ def get_player_game_stats():
                 minutes_played=stat.minutes,
             )
             
+            # 获取球员名字
+            player_info = PlayerInformation.query.filter_by(player_id=stat.personId).first()
+            player_name = player_info.full_name if player_info else f"Player {stat.personId}"
+            
+            # 计算得分
+            points = stat.threePointersMade * 3 + stat.twoPointersMade * 2 + stat.freeThrowsMade
+            
             # 构建球员数据
             player_data = {
                 "player_id": stat.personId,
+                "player_name": player_name,
                 "team_name": stat.teamName,
+                "position": player_info.position if player_info else "",
+                "salary": player_info.salary if player_info else 0,
                 "minutes": stat.minutes,
-                "three_pointers": stat.threePointersMade,
-                "two_pointers": stat.twoPointersMade,
-                "free_throws": stat.freeThrowsMade,
+                "three_pointers_made": stat.threePointersMade,
+                "three_pointers_attempted": stat.threePointersAttempted,
+                "two_pointers_made": stat.twoPointersMade,
+                "two_pointers_attempted": stat.twoPointersAttempted,
+                "free_throws_made": stat.freeThrowsMade,
+                "free_throws_attempted": stat.freeThrowsAttempted,
                 "offensive_rebounds": stat.reboundsOffensive,
                 "defensive_rebounds": stat.reboundsDefensive,
                 "assists": stat.assists,
@@ -105,6 +120,7 @@ def get_player_game_stats():
                 "turnovers": stat.turnovers,
                 "personal_fouls": stat.foulsPersonal,
                 "team_won": stat.IS_WINNER,
+                "points": points,
                 "score": score
             }
             players_with_score.append(player_data)
@@ -115,11 +131,28 @@ def get_player_game_stats():
                 key=lambda x: x["score"],
                 reverse=(sort_order == "desc")
             )
+        elif sort_by == "points":
+            players_with_score.sort(
+                key=lambda x: x["points"],
+                reverse=(sort_order == "desc")
+            )
+        
+        # 分页
+        total_players = len(players_with_score)
+        total_pages = (total_players + per_page - 1) // per_page
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_players = players_with_score[start_idx:end_idx]
         
         return jsonify({
-            "players": players_with_score,
+            "players": paginated_players,
             "game_date": game_date,
-            "total_players": len(players_with_score)
+            "pagination": {
+                "current_page": page,
+                "per_page": per_page,
+                "total_items": total_players,
+                "total_pages": total_pages,
+            }
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -10,7 +10,7 @@
           type="date" 
           id="date" 
           v-model="selectedDate" 
-          @change="fetchPlayerStats"
+          @change="handleDateChange"
         />
       </div>
       
@@ -19,10 +19,24 @@
         <select 
           id="sort-order" 
           v-model="sortOrder" 
-          @change="fetchPlayerStats"
+          @change="handleSortChange"
         >
           <option value="desc">评分降序</option>
           <option value="asc">评分升序</option>
+        </select>
+      </div>
+      
+      <div class="per-page-control">
+        <label for="per-page">每页显示：</label>
+        <select 
+          id="per-page" 
+          v-model="perPage" 
+          @change="handlePerPageChange"
+        >
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
         </select>
       </div>
     </div>
@@ -39,19 +53,18 @@
     
     <!-- 数据展示 -->
     <div v-else-if="players.length > 0" class="stats-container">
-      <div class="stats-summary">
-        <p>日期：{{ selectedDate }}</p>
-        <p>球员总数：{{ players.length }}</p>
-      </div>
-      
       <table class="players-table">
         <thead>
           <tr>
             <th>排名</th>
+            <th></th>
             <th>球员</th>
             <th>球队</th>
+            <th>位置</th>
+            <th>薪资</th>
             <th>评分</th>
             <th>上场时间</th>
+            <th>得分</th>
             <th>三分</th>
             <th>两分</th>
             <th>罚球</th>
@@ -67,23 +80,24 @@
         </thead>
         <tbody>
           <tr v-for="(player, index) in players" :key="player.player_id">
-            <td class="rank">{{ index + 1 }}</td>
-            <td class="player-info">
-              <div class="player-avatar">
-                <img 
-                  :src="`/player_avatars/${player.player_id}.png`" 
-                  :alt="`${player.player_id}的头像`"
-                  @error="handleImageError"
-                />
-              </div>
-              <span class="player-id">{{ player.player_id }}</span>
+            <td class="rank">{{ (currentPage - 1) * perPage + index + 1 }}</td>
+            <td class="player-avatar">
+              <img 
+                :src="`/player_avatars/${player.player_id}.png`" 
+                :alt="`${player.player_name}的头像`"
+                @error="handleImageError"
+              />
             </td>
-            <td>{{ player.team_name }}</td>
-            <td class="score">{{ player.score.toFixed(2) }}</td>
-            <td>{{ player.minutes }}分钟</td>
-            <td>{{ player.three_pointers }}</td>
-            <td>{{ player.two_pointers }}</td>
-            <td>{{ player.free_throws }}</td>
+            <td class="player-name">{{ player.player_name }}</td>
+            <td>{{ translations.teams[player.team_name] || player.team_name }}</td>
+            <td>{{ translatePosition(player.position) }}</td>
+            <td>${{ player.salary.toLocaleString() }}</td>
+            <td class="score">{{ player.score.toFixed(1) }}</td>
+            <td>{{ formatMinutes(player.minutes) }}</td>
+            <td>{{ player.points }}</td>
+            <td>{{ formatShootingStats(player.three_pointers_made, player.three_pointers_attempted) }}</td>
+            <td>{{ formatShootingStats(player.two_pointers_made, player.two_pointers_attempted) }}</td>
+            <td>{{ formatShootingStats(player.free_throws_made, player.free_throws_attempted) }}</td>
             <td>{{ player.offensive_rebounds }}</td>
             <td>{{ player.defensive_rebounds }}</td>
             <td>{{ player.assists }}</td>
@@ -97,6 +111,41 @@
           </tr>
         </tbody>
       </table>
+      
+      <!-- 翻页控件 -->
+      <div class="pagination" v-if="totalPages > 1">
+        <button 
+          class="pagination-btn" 
+          @click="goToFirstPage" 
+          :disabled="currentPage === 1"
+        >
+          首页
+        </button>
+        <button 
+          class="pagination-btn" 
+          @click="goToPreviousPage" 
+          :disabled="currentPage === 1"
+        >
+          上一页
+        </button>
+        <span class="page-info">
+          第 {{ currentPage }} / {{ totalPages }} 页 (共 {{ totalItems }} 条)
+        </span>
+        <button 
+          class="pagination-btn" 
+          @click="goToNextPage" 
+          :disabled="currentPage === totalPages"
+        >
+          下一页
+        </button>
+        <button 
+          class="pagination-btn" 
+          @click="goToLastPage" 
+          :disabled="currentPage === totalPages"
+        >
+          末页
+        </button>
+      </div>
     </div>
     
     <!-- 无数据提示 -->
@@ -109,6 +158,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import API_CONFIG from '../config/api.js';
+import translations from '../data/translations.json';
+import { translatePosition } from '../utils/translation';
 
 const apiConfig = API_CONFIG;
 
@@ -118,6 +169,10 @@ const sortOrder = ref('desc');
 const players = ref([]);
 const loading = ref(false);
 const error = ref(null);
+const currentPage = ref(1);
+const perPage = ref(10);
+const totalPages = ref(1);
+const totalItems = ref(0);
 
 // 初始化
 onMounted(() => {
@@ -137,7 +192,7 @@ const fetchPlayerStats = async () => {
   
   try {
     const response = await fetch(
-      `${apiConfig.BASE_URL}${apiConfig.ENDPOINTS.PLAYERS_GAME_STATS}?game_date=${selectedDate.value}&sort_order=${sortOrder.value}`
+      `${apiConfig.BASE_URL}${apiConfig.ENDPOINTS.PLAYERS_GAME_STATS}?game_date=${selectedDate.value}&sort_order=${sortOrder.value}&page=${currentPage.value}&per_page=${perPage.value}`
     );
     
     if (!response.ok) {
@@ -146,6 +201,10 @@ const fetchPlayerStats = async () => {
     
     const data = await response.json();
     players.value = data.players || [];
+    if (data.pagination) {
+      totalPages.value = data.pagination.total_pages;
+      totalItems.value = data.pagination.total_items;
+    }
   } catch (err) {
     error.value = err.message;
     players.value = [];
@@ -154,17 +213,75 @@ const fetchPlayerStats = async () => {
   }
 };
 
+// 监听日期和排序变化，重置页码
+const handleDateChange = () => {
+  currentPage.value = 1;
+  fetchPlayerStats();
+};
+
+const handleSortChange = () => {
+  currentPage.value = 1;
+  fetchPlayerStats();
+};
+
+const handlePerPageChange = () => {
+  currentPage.value = 1;
+  fetchPlayerStats();
+};
+
 // 处理头像加载失败
 const handleImageError = (event) => {
   event.target.src = 'https://via.placeholder.com/50';
+};
+
+// 格式化上场时间为 xx:xx 格式
+const formatMinutes = (minutes) => {
+  const mins = Math.floor(minutes);
+  const secs = Math.round((minutes - mins) * 60);
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
+// 格式化投篮统计为 {命中数}/{出手数} 格式
+const formatShootingStats = (made, attempted) => {
+  return `${made}/${attempted}`;
+};
+
+// 翻页函数
+const goToPage = (page) => {
+  if (page < 1 || page > totalPages.value) return;
+  currentPage.value = page;
+  fetchPlayerStats();
+};
+
+const goToFirstPage = () => {
+  currentPage.value = 1;
+  fetchPlayerStats();
+};
+
+const goToLastPage = () => {
+  currentPage.value = totalPages.value;
+  fetchPlayerStats();
+};
+
+const goToPreviousPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    fetchPlayerStats();
+  }
+};
+
+const goToNextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+    fetchPlayerStats();
+  }
 };
 </script>
 
 <style scoped>
 .rankings-page {
   padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 h2 {
@@ -182,7 +299,7 @@ h2 {
   border-radius: 8px;
 }
 
-.date-selector, .sort-control {
+.date-selector, .sort-control, .per-page-control {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -207,16 +324,6 @@ input[type="date"], select {
   color: #d9534f;
   background-color: #f8d7da;
   border: 1px solid #f5c6cb;
-}
-
-.stats-summary {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 15px;
-  padding: 10px;
-  background-color: #e9ecef;
-  border-radius: 4px;
-  font-size: 14px;
 }
 
 .players-table {
@@ -248,28 +355,22 @@ input[type="date"], select {
   width: 60px;
 }
 
-.player-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 120px;
-}
-
 .player-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  overflow: hidden;
+  width: 60px;
+  text-align: center;
 }
 
 .player-avatar img {
-  width: 100%;
-  height: 100%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   object-fit: cover;
 }
 
-.player-id {
+.player-name {
   font-size: 14px;
+  width: 100px;
+  text-align: left;
 }
 
 .score {
@@ -285,6 +386,45 @@ input[type="date"], select {
 
 .lost {
   color: #dc3545;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #007bff;
+  color: #fff;
+  border-color: #007bff;
+}
+
+.pagination-btn:disabled {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
 }
 
 /* 响应式设计 */
@@ -308,6 +448,20 @@ input[type="date"], select {
   .players-table {
     display: block;
     overflow-x: auto;
+  }
+  
+  .pagination {
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  
+  .pagination-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .page-info {
+    font-size: 12px;
   }
 }
 </style>

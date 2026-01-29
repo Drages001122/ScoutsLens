@@ -114,6 +114,11 @@ class PlayerGameStats(db.Model):
     IS_WINNER = db.Column(db.Boolean, nullable=False, default=False)
     game_date = db.Column(db.Date, nullable=False)
 
+    @property
+    def points(self):
+        # 计算得分：三分球 * 3 + 两分球 * 2 + 罚球 * 1
+        return self.threePointersMade * 3 + self.twoPointersMade * 2 + self.freeThrowsMade
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -134,5 +139,6 @@ class PlayerGameStats(db.Model):
             "turnovers": self.turnovers,
             "foulsPersonal": self.foulsPersonal,
             "IS_WINNER": self.IS_WINNER,
-            "game_date": self.game_date.isoformat() if self.game_date else None
+            "game_date": self.game_date.isoformat() if self.game_date else None,
+            "points": self.points
         }
