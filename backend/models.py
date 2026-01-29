@@ -45,6 +45,7 @@ class Lineup(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(255), nullable=False)
+    date = db.Column(db.Date, nullable=False)
     total_salary = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -56,6 +57,7 @@ class Lineup(db.Model):
             "id": self.id,
             "user_id": self.user_id,
             "name": self.name,
+            "date": self.date.isoformat() if self.date else None,
             "total_salary": self.total_salary,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "players": [player.to_dict() for player in self.players]

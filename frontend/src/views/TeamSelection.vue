@@ -2,13 +2,24 @@
   <div class="page">
     <div class="page-header">
       <h2>阵容选择</h2>
-      <button 
-        class="publish-btn" 
-        @click="showPublishModal = true"
-        :disabled="!(startingLineup.length > 0 || benchLineup.length > 0)"
-      >
-        发布阵容
-      </button>
+      <div class="header-controls">
+        <div class="date-selector">
+          <label for="lineup-date">比赛日期</label>
+          <input 
+            type="date" 
+            id="lineup-date" 
+            v-model="selectedDate"
+            :min="minDate"
+          >
+        </div>
+        <button 
+          class="publish-btn" 
+          @click="showPublishModal = true"
+          :disabled="!(startingLineup.length > 0 || benchLineup.length > 0)"
+        >
+          发布阵容
+        </button>
+      </div>
     </div>
     <div class="content-container">
       <!-- 左侧球员列表 -->
@@ -32,16 +43,6 @@
       <div class="modal-content" @click.stop>
         <h3>发布阵容</h3>
         <div class="modal-form">
-          <div class="form-group">
-            <label for="lineup-name">阵容名称</label>
-            <input 
-              type="text" 
-              id="lineup-name" 
-              v-model="lineupName" 
-              placeholder="请输入阵容名称"
-              required
-            >
-          </div>
           <div class="form-info">
             <p>首发球员: {{ startingLineup.length }}人</p>
             <p>替补球员: {{ benchLineup.length }}人</p>
@@ -52,7 +53,6 @@
             <button 
               class="btn publish-submit-btn" 
               @click="publishLineup"
-              :disabled="!lineupName.trim()"
             >
               发布
             </button>
@@ -88,7 +88,8 @@ const benchLineup = ref([])
 
 // 发布阵容相关状态
 const showPublishModal = ref(false)
-const lineupName = ref('')
+const selectedDate = ref(new Date().toISOString().split('T')[0])
+const minDate = ref(new Date().toISOString().split('T')[0])
 const showSuccessMessage = ref(false)
 const showErrorMessage = ref(false)
 const successMessage = ref('')
@@ -148,23 +149,16 @@ const removeFromLineup = (player) => {
 
 // 打开发布阵容模态框
 const openPublishModal = () => {
-  lineupName.value = ''
   showPublishModal.value = true
 }
 
 // 关闭发布阵容模态框
 const closePublishModal = () => {
   showPublishModal.value = false
-  lineupName.value = ''
 }
 
 // 发布阵容
 const publishLineup = async () => {
-  if (!lineupName.value.trim()) {
-    showError('请输入阵容名称')
-    return
-  }
-
   if (!startingLineup.value.length && !benchLineup.value.length) {
     showError('阵容至少需要一名球员')
     return
@@ -175,7 +169,7 @@ const publishLineup = async () => {
   try {
     // 准备阵容数据
     const lineupData = {
-      name: lineupName.value.trim(),
+      date: selectedDate.value,
       starting_players: startingLineup.value.map(player => ({
         player_id: player.player_id,
         full_name: player.full_name,
@@ -252,6 +246,38 @@ const showError = (message) => {
   align-items: center;
   margin-bottom: 20px;
   padding: 0 10px;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.date-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.date-selector label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+}
+
+.date-selector input {
+  padding: 8px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.date-selector input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .page-header h2 {
@@ -488,6 +514,22 @@ const showError = (message) => {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+  }
+  
+  .header-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+  }
+  
+  .date-selector {
+    width: 100%;
+  }
+  
+  .date-selector input {
+    width: 100%;
+    box-sizing: border-box;
   }
   
   .publish-btn {
