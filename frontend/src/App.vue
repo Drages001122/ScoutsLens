@@ -38,6 +38,7 @@ const handleLogout = () => {
         <router-link to="/team-selection" class="banner-item">阵容选择</router-link>
         <router-link to="/rankings" class="banner-item">排行榜</router-link>
         <router-link to="/lineup-ratings" class="banner-item">阵容评分</router-link>
+        <router-link to="/player-comparison" class="banner-item">球员比较</router-link>
       </div>
       <div class="banner-right">
         <div v-if="user" class="user-info">

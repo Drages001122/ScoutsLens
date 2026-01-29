@@ -3,6 +3,7 @@ import TeamSelection from '../views/TeamSelection.vue'
 import Rankings from '../views/Rankings.vue'
 import Login from '../views/Login.vue'
 import LineupRatings from '../views/LineupRatings.vue'
+import PlayerComparison from '../views/PlayerComparison.vue'
 
 const routes = [
   {
@@ -28,6 +29,11 @@ const routes = [
     path: '/lineup-ratings',
     name: 'LineupRatings',
     component: LineupRatings
+  },
+  {
+    path: '/player-comparison',
+    name: 'PlayerComparison',
+    component: PlayerComparison
   }
 ]
 
