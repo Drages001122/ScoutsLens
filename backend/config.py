@@ -15,12 +15,12 @@ def init_db(app: Flask):
     db.init_app(app)
 
     with app.app_context():
-        from models import (
-            Lineup,
-            LineupPlayer,
-            PlayerGameStats,
-            PlayerInformation,
-            User,
-        )
+        # These imports are necessary for db.create_all() to create the tables
+        # Do not remove them even if they appear unused
+        from models import Lineup  # noqa: F401
+        from models import LineupPlayer  # noqa: F401
+        from models import PlayerGameStats  # noqa: F401
+        from models import PlayerInformation  # noqa: F401
+        from models import User  # noqa: F401
 
         db.create_all()

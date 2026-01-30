@@ -1,5 +1,6 @@
-from config import db
 from datetime import datetime
+
+from config import db
 
 
 class PlayerInformation(db.Model):
@@ -43,14 +44,18 @@ class Lineup(db.Model):
     __tablename__ = "lineups"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     name = db.Column(db.String(255), nullable=False)
     date = db.Column(db.Date, nullable=False)
     total_salary = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(
+        db.DateTime, default=lambda: datetime.utcnow()
+    )  # TODO: 考虑时区问题, 现在是北京时间
 
     # 关系
-    players = db.relationship('LineupPlayer', backref='lineup', cascade='all, delete-orphan')
+    players = db.relationship(
+        "LineupPlayer", backref="lineup", cascade="all, delete-orphan"
+    )
 
     def to_dict(self):
         return {
@@ -60,7 +65,7 @@ class Lineup(db.Model):
             "date": self.date.isoformat() if self.date else None,
             "total_salary": self.total_salary,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "players": [player.to_dict() for player in self.players]
+            "players": [player.to_dict() for player in self.players],
         }
 
 
@@ -68,7 +73,7 @@ class LineupPlayer(db.Model):
     __tablename__ = "lineup_players"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    lineup_id = db.Column(db.Integer, db.ForeignKey('lineups.id'), nullable=False)
+    lineup_id = db.Column(db.Integer, db.ForeignKey("lineups.id"), nullable=False)
     player_id = db.Column(db.Integer, nullable=False)
     full_name = db.Column(db.String(255), nullable=False)
     team_name = db.Column(db.String(255), nullable=False)
@@ -87,7 +92,7 @@ class LineupPlayer(db.Model):
             "position": self.position,
             "salary": self.salary,
             "slot": self.slot,
-            "is_starting": self.is_starting
+            "is_starting": self.is_starting,
         }
 
 
@@ -116,8 +121,9 @@ class PlayerGameStats(db.Model):
 
     @property
     def points(self):
-        # 计算得分：三分球 * 3 + 两分球 * 2 + 罚球 * 1
-        return self.threePointersMade * 3 + self.twoPointersMade * 2 + self.freeThrowsMade
+        return (
+            self.threePointersMade * 3 + self.twoPointersMade * 2 + self.freeThrowsMade
+        )
 
     def to_dict(self):
         return {
@@ -140,5 +146,5 @@ class PlayerGameStats(db.Model):
             "foulsPersonal": self.foulsPersonal,
             "IS_WINNER": self.IS_WINNER,
             "game_date": self.game_date.isoformat() if self.game_date else None,
-            "points": self.points
+            "points": self.points,
         }
