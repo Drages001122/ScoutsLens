@@ -3,7 +3,7 @@ from datetime import date
 
 from flask import Blueprint, jsonify, request, send_from_directory
 from models import PlayerInformation, PlayerGameStats
-from rating import calculate_player_score
+from utils.rating import calculate_player_score
 
 players_information_bp = Blueprint("players_information", __name__)
 
