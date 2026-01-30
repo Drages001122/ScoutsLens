@@ -9,10 +9,9 @@ players_information_bp = Blueprint("players_information", __name__)
 
 
 @players_information_bp.route("/list", methods=["GET"])
+@paginated_response(items_key="players", default_per_page=10)
 def get_players():
     try:
-        page = request.args.get("page", 1, type=int)
-        per_page = request.args.get("per_page", 10, type=int)
         salary_min = request.args.get("salary_min", 0, type=int)
         salary_max = request.args.get("salary_max", 60000000, type=int)
         teams = request.args.getlist("teams")
@@ -24,23 +23,10 @@ def get_players():
         if teams:
             query = query.filter(PlayerInformation.team_name.in_(teams))
 
-        total = query.count()
-        players = query.order_by(PlayerInformation.salary.desc()).paginate(
-            page=page, per_page=per_page, error_out=False
-        )
-        players_list = [player.to_dict() for player in players.items]
-        total_pages = players.pages
-        return jsonify(
-            {
-                "players": players_list,
-                "pagination": {
-                    "current_page": page,
-                    "per_page": per_page,
-                    "total_items": total,
-                    "total_pages": total_pages,
-                },
-            }
-        )
+        players = query.order_by(PlayerInformation.salary.desc()).all()
+        players_list = [player.to_dict() for player in players]
+
+        return {"players": players_list}
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
