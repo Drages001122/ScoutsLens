@@ -4,6 +4,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from models import Lineup, LineupPlayer, User, db
 from routes.rule import SALARY_CAP
+from utils.auth import login_required
 from utils.jwt import get_current_user_id
 from utils.rule import PlayerCountRule, SalaryRule
 
@@ -31,11 +32,9 @@ def calculate_total_salary(starting_players: list, bench_players: list):
 
 
 @lineup_bp.route("/create", methods=["POST"])
+@login_required
 def create_lineup():
     try:
-        user_id = get_current_user_id()
-        if not user_id:
-            return jsonify({"error": "未授权，请先登录"}), 401
         data = request.get_json()
 
         if not data:
@@ -66,6 +65,7 @@ def create_lineup():
         if not valid:
             return jsonify({"error": err_msg}), 400
 
+        user_id = get_current_user_id()
         new_lineup = Lineup(
             user_id=user_id,
             name=name,
@@ -111,11 +111,9 @@ def create_lineup():
 
 
 @lineup_bp.route("/by-date", methods=["GET"])
+@login_required
 def get_lineups_by_date():
     try:
-        user_id = get_current_user_id()
-        if not user_id:
-            return jsonify({"error": "未授权，请先登录"}), 401
 
         date_str = request.args.get("date")
         if not date_str:
