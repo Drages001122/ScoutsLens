@@ -216,14 +216,14 @@ def get_player_game_stats_by_id(player_id):
 def get_teams():
     try:
         # 查询所有不重复的球队
-        teams = PlayerInformation.query.distinct(PlayerInformation.team_name).all()
+        teams = PlayerInformation.query.with_entities(PlayerInformation.team_name).distinct().all()
         
         # 构建球队列表
         teams_list = []
         for i, team in enumerate(teams, 1):
             teams_list.append({
                 "team_id": i,
-                "team_name": team.team_name
+                "team_name": team[0]
             })
         
         return jsonify({"teams": teams_list})
