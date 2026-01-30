@@ -42,3 +42,4 @@ htmlcov/
 .dmypy.json
 dmypy.json
 *.log
+database/scoutslens.db

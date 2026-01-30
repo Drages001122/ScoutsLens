@@ -7,7 +7,7 @@ from routes.players_information import players_information_bp
 from routes.rule import rule_bp
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # TODO: 添加前端域名
 
 init_db(app)
 
