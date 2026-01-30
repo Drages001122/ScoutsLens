@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from models import Lineup, LineupPlayer, User, db
 from routes.rule import SALARY_CAP
 from rule import PlayerCountRule, SalaryRule
-from utils import get_current_user_id
+from utils.jwt import get_current_user_id
 
 lineup_bp = Blueprint("lineup", __name__)
 

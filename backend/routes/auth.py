@@ -3,7 +3,7 @@ import hashlib
 from config import db
 from flask import Blueprint, jsonify, request
 from models import User
-from utils import generate_token, verify_token
+from utils.jwt import generate_token, verify_token
 
 auth_bp = Blueprint("auth", __name__)
 
