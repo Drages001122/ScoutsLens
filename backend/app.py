@@ -1,10 +1,13 @@
 from config import init_db
+from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
-from routes.players_information import players_information_bp
-from routes.rule import rule_bp
 from routes.auth import auth_bp
 from routes.lineup import lineup_bp
+from routes.players_information import players_information_bp
+from routes.rule import rule_bp
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -19,4 +22,4 @@ app.register_blueprint(lineup_bp, url_prefix="/api/lineup")
 
 
 if __name__ == "__main__":
-    app.run(debug=False, port=5000, host='0.0.0.0')
+    app.run(debug=True, port=5000, host="0.0.0.0")
