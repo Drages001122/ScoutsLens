@@ -4,17 +4,34 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from models import Lineup, LineupPlayer, User, db
 from routes.rule import SALARY_CAP
-from rule import PlayerCountRule, SalaryRule
 from utils.jwt import get_current_user_id
+from utils.rule import PlayerCountRule, SalaryRule
 
 lineup_bp = Blueprint("lineup", __name__)
 
 
+def verify_lineup(starting_players: list, bench_players: list):
+    salary_rule = SalaryRule(SALARY_CAP)
+    player_count_rule = PlayerCountRule(5, 7)
+
+    valid, err_msg = True, ""
+
+    if not salary_rule.verify(starting_players, bench_players):
+        err_msg = "阵容薪资超过限制"
+        valid = False
+    if not player_count_rule.verify(starting_players, bench_players):
+        err_msg = "球员数量不符合规则"
+        valid = False
+
+    return valid, err_msg
+
+
+def calculate_total_salary(starting_players: list, bench_players: list):
+    return sum(p.get("salary", 0) for p in starting_players + bench_players)
+
+
 @lineup_bp.route("/create", methods=["POST"])
 def create_lineup():
-    """
-    创建新阵容
-    """
     try:
         user_id = get_current_user_id()
         if not user_id:
@@ -29,7 +46,7 @@ def create_lineup():
         starting_players = data.get("starting_players", [])
         bench_players = data.get("bench_players", [])
 
-        # 如果没有提供阵容名称，生成一个默认名称
+        # 当前不要求用户提供阵容名, name 一定为空
         if not name:
             timestamp = int(time.time())
             name = f"阵容_{date_str}_{timestamp}"
@@ -45,27 +62,19 @@ def create_lineup():
         if not starting_players and not bench_players:
             return jsonify({"error": "阵容至少需要一名球员"}), 400
 
-        # 规则验证
-        salary_rule = SalaryRule(SALARY_CAP)  # 薪资帽
-        player_count_rule = PlayerCountRule(5, 7)  # 球员数量限制
+        valid, err_msg = verify_lineup(starting_players, bench_players)
+        if not valid:
+            return jsonify({"error": err_msg}), 400
 
-        if not salary_rule.verify(starting_players, bench_players):
-            return jsonify({"error": "阵容薪资超过限制"}), 400
-
-        if not player_count_rule.verify(starting_players, bench_players):
-            return jsonify({"error": "球员数量不符合规则"}), 400
-
-        # 计算总薪资
-        total_salary = sum(p.get("salary", 0) for p in starting_players + bench_players)
-
-        # 创建阵容
         new_lineup = Lineup(
-            user_id=user_id, name=name, date=date, total_salary=total_salary
+            user_id=user_id,
+            name=name,
+            date=date,
+            total_salary=calculate_total_salary(starting_players, bench_players),
         )
         db.session.add(new_lineup)
-        db.session.flush()  # 获取阵容ID
+        db.session.flush()
 
-        # 添加首发球员
         for player in starting_players:
             lineup_player = LineupPlayer(
                 lineup_id=new_lineup.id,
@@ -79,7 +88,6 @@ def create_lineup():
             )
             db.session.add(lineup_player)
 
-        # 添加替补球员
         for player in bench_players:
             lineup_player = LineupPlayer(
                 lineup_id=new_lineup.id,
@@ -102,79 +110,8 @@ def create_lineup():
         return jsonify({"error": str(e)}), 500
 
 
-@lineup_bp.route("/list", methods=["GET"])
-def get_user_lineups():
-    """
-    获取用户的所有阵容
-    """
-    try:
-        user_id = get_current_user_id()
-        if not user_id:
-            return jsonify({"error": "未授权，请先登录"}), 401
-
-        lineups = (
-            Lineup.query.filter_by(user_id=user_id)
-            .order_by(Lineup.created_at.desc())
-            .all()
-        )
-
-        return jsonify({"lineups": [lineup.to_dict() for lineup in lineups]}), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@lineup_bp.route("/<int:lineup_id>", methods=["GET"])
-def get_lineup(lineup_id):
-    """
-    获取单个阵容详情
-    """
-    try:
-        user_id = get_current_user_id()
-        if not user_id:
-            return jsonify({"error": "未授权，请先登录"}), 401
-
-        lineup = Lineup.query.filter_by(id=lineup_id, user_id=user_id).first()
-
-        if not lineup:
-            return jsonify({"error": "阵容不存在或无权限访问"}), 404
-
-        return jsonify({"lineup": lineup.to_dict()}), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@lineup_bp.route("/<int:lineup_id>", methods=["DELETE"])
-def delete_lineup(lineup_id):
-    """
-    删除阵容
-    """
-    try:
-        user_id = get_current_user_id()
-        if not user_id:
-            return jsonify({"error": "未授权，请先登录"}), 401
-
-        lineup = Lineup.query.filter_by(id=lineup_id, user_id=user_id).first()
-
-        if not lineup:
-            return jsonify({"error": "阵容不存在或无权限访问"}), 404
-
-        db.session.delete(lineup)
-        db.session.commit()
-
-        return jsonify({"message": "阵容删除成功"}), 200
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
-
-
 @lineup_bp.route("/by-date", methods=["GET"])
 def get_lineups_by_date():
-    """
-    根据日期获取所有用户的阵容
-    """
     try:
         user_id = get_current_user_id()
         if not user_id:
@@ -189,14 +126,13 @@ def get_lineups_by_date():
         except ValueError:
             return jsonify({"error": "日期格式不正确，请使用 YYYY-MM-DD 格式"}), 400
 
-        # 获取指定日期的所有阵容
-        lineups = Lineup.query.filter_by(date=date).order_by(Lineup.created_at.desc()).all()
+        lineups = (
+            Lineup.query.filter_by(date=date).order_by(Lineup.created_at.desc()).all()
+        )
 
-        # 为每个阵容添加用户名
         result = []
         for lineup in lineups:
             lineup_dict = lineup.to_dict()
-            # 获取用户信息
             user = User.query.get(lineup.user_id)
             if user:
                 lineup_dict["username"] = user.username
