@@ -108,6 +108,10 @@
 </template>
 
 <script>
+import API_CONFIG from '../config/api.js';
+
+const apiConfig = API_CONFIG;
+
 export default {
   name: 'Login',
   data() {
@@ -133,7 +137,7 @@ export default {
       this.isLoading = true
       
       try {
-        const response = await fetch('http://localhost:5000/api/auth/login', {
+        const response = await fetch(`${apiConfig.BASE_URL}/api/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -169,7 +173,7 @@ export default {
       this.isRegisterLoading = true
       
       try {
-        const response = await fetch('http://localhost:5000/api/auth/register', {
+        const response = await fetch(`${apiConfig.BASE_URL}/api/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

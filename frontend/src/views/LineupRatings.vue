@@ -205,6 +205,9 @@
 
 <script>
 import PlayerProfile from '../components/PlayerProfile.vue';
+import API_CONFIG from '../config/api.js';
+
+const apiConfig = API_CONFIG;
 
 export default {
   name: 'LineupRatings',
@@ -234,7 +237,7 @@ export default {
       this.loading = true
       this.error = null
       
-      fetch(`http://localhost:5000/api/lineup/by-date?date=${this.selectedDate}`, {
+      fetch(`${apiConfig.BASE_URL}/api/lineup/by-date?date=${this.selectedDate}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -276,7 +279,7 @@ export default {
     },
     fetchPlayerStats() {
       // 获取选中日期的球员统计数据
-      fetch(`http://localhost:5000/api/players_information/game-stats?game_date=${this.selectedDate}&per_page=1000`, {
+      fetch(`${apiConfig.BASE_URL}/api/players_information/game-stats?game_date=${this.selectedDate}&per_page=1000`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
