@@ -1,13 +1,10 @@
 from config import init_db
-from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
 from routes.auth import auth_bp
 from routes.lineup import lineup_bp
 from routes.players_information import players_information_bp
 from routes.rule import rule_bp
-
-load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
