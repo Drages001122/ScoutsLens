@@ -70,6 +70,15 @@ const close = () => {
   emit('close')
 }
 
+// 计算球员评分平均值
+const calculatePlayerAverage = (ratings) => {
+  const validRatings = ratings.filter(rating => rating !== null && !isNaN(rating))
+  if (validRatings.length === 0) return 0
+  
+  const sum = validRatings.reduce((acc, rating) => acc + parseFloat(rating), 0)
+  return sum / validRatings.length
+}
+
 // 加载图表
 const loadChart = async () => {
   if (!props.player || !ratingChart.value) return
@@ -104,12 +113,41 @@ const loadChart = async () => {
     console.log('图表数据 - 日期:', matchData.dates)
     console.log('图表数据 - 评分:', matchData.ratings)
     
+    // 计算平均值
+    const average = calculatePlayerAverage(matchData.ratings)
+    console.log('球员平均值:', average)
+    
     // 动态导入Chart.js及其组件
     const chartModule = await import('chart.js')
     const { Chart, LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend } = chartModule
     
     // 注册必要的组件
     Chart.register(LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend)
+    
+    // 准备数据集
+    const datasets = [{
+      label: '比赛评分',
+      data: matchData.ratings,
+      borderColor: '#667eea',
+      backgroundColor: 'rgba(102, 126, 234, 0.1)',
+      tension: 0.4,
+      fill: true,
+      spanGaps: true
+    }]
+    
+    // 添加平均值水平线
+    if (average !== 0 && !isNaN(average)) {
+      datasets.push({
+        label: '平均值',
+        data: Array(matchData.dates.length).fill(average),
+        borderColor: '#667eea',
+        borderWidth: 2,
+        borderDash: [5, 5],
+        pointRadius: 0,
+        fill: false,
+        tension: 0
+      })
+    }
     
     // 计算y轴上下限
     const validRatings = matchData.ratings.filter(rating => rating !== null && !isNaN(rating))
@@ -128,15 +166,7 @@ const loadChart = async () => {
       type: 'line',
       data: {
         labels: matchData.dates,
-        datasets: [{
-          label: '比赛评分',
-          data: matchData.ratings,
-          borderColor: '#667eea',
-          backgroundColor: 'rgba(102, 126, 234, 0.1)',
-          tension: 0.4,
-          fill: true,
-          spanGaps: true // 不连接缺失的数据点
-        }]
+        datasets
       },
       options: {
         responsive: true,
@@ -169,11 +199,40 @@ const loadChart = async () => {
     // 如果API请求失败，使用模拟数据
     try {
       const matchData = generateMockMatchData()
+      const average = calculatePlayerAverage(matchData.ratings)
+      console.log('模拟数据平均值:', average)
+      
       const chartModule = await import('chart.js')
       const { Chart, LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend } = chartModule
       
       // 注册必要的组件
       Chart.register(LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend)
+      
+      // 准备数据集
+      const datasets = [{
+        label: '比赛评分',
+        data: matchData.ratings,
+        borderColor: '#667eea',
+        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+        tension: 0.4,
+        fill: true,
+        spanGaps: false
+      }]
+      
+      // 添加平均值水平线
+      if (average !== 0 && !isNaN(average)) {
+        datasets.push({
+          label: '平均值',
+          data: Array(matchData.dates.length).fill(average),
+          borderColor: '#667eea',
+          borderWidth: 2,
+          borderDash: [5, 5],
+          pointRadius: 0,
+          fill: false,
+          tension: 0
+        })
+      }
+      
       // 计算y轴上下限
       const validRatings = matchData.ratings.filter(rating => rating !== null && !isNaN(rating))
       let yMin = -5
@@ -190,15 +249,7 @@ const loadChart = async () => {
         type: 'line',
         data: {
           labels: matchData.dates,
-          datasets: [{
-            label: '比赛评分',
-            data: matchData.ratings,
-            borderColor: '#667eea',
-            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-            tension: 0.4,
-            fill: true,
-            spanGaps: false // 不连接缺失的数据点
-          }]
+          datasets
         },
         options: {
           responsive: true,
