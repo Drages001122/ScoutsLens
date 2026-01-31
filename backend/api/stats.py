@@ -13,7 +13,6 @@ stats_bp = Blueprint("stats", __name__)
 def get_player_game_stats():
     try:
         game_date = request.args.get("game_date")
-        sort_by = request.args.get("sort_by", "rating")
         sort_order = request.args.get("sort_order", "desc")
 
         if not game_date:
@@ -143,15 +142,11 @@ def get_player_game_stats_by_id(player_id):
 @stats_bp.route("/player/<int:player_id>/average-stats", methods=["GET"])
 def get_player_average_stats(player_id):
     try:
-        # 查询指定球员的所有比赛统计数据
         stats = PlayerGameStats.query.filter(PlayerGameStats.personId == player_id).all()
-
         if not stats:
             return jsonify({"error": "No stats found for this player"}), 404
-
         total_games = len(stats)
 
-        # 计算场均数据
         total_minutes = sum(stat.minutes for stat in stats)
         total_points = sum(
             stat.threePointersMade * 3 + stat.twoPointersMade * 2 + stat.freeThrowsMade
@@ -171,7 +166,6 @@ def get_player_average_stats(player_id):
         total_free_throws_made = sum(stat.freeThrowsMade for stat in stats)
         total_free_throws_attempted = sum(stat.freeThrowsAttempted for stat in stats)
 
-        # 计算投篮命中率
         field_goals_made = total_three_pointers_made + total_two_pointers_made
         field_goals_attempted = total_three_pointers_attempted + total_two_pointers_attempted
         field_goal_percentage = (
