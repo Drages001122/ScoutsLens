@@ -40,6 +40,7 @@ const handleLogout = () => {
         <router-link to="/rankings" class="banner-item">排行榜</router-link>
         <router-link to="/lineup-ratings" class="banner-item">阵容评分</router-link>
         <router-link to="/player-comparison" class="banner-item">球员比较</router-link>
+        <router-link to="/value-for-money" class="banner-item">性价比</router-link>
       </div>
       <div class="banner-right">
         <div v-if="user" class="user-info">

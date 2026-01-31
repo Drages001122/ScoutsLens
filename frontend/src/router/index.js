@@ -4,6 +4,7 @@ import Rankings from '../views/Rankings.vue'
 import Login from '../views/Login.vue'
 import LineupRatings from '../views/LineupRatings.vue'
 import PlayerComparison from '../views/PlayerComparison.vue'
+import ValueForMoney from '../views/ValueForMoney.vue'
 
 const routes = [
   {
@@ -34,6 +35,11 @@ const routes = [
     path: '/player-comparison',
     name: 'PlayerComparison',
     component: PlayerComparison
+  },
+  {
+    path: '/value-for-money',
+    name: 'ValueForMoney',
+    component: ValueForMoney
   }
 ]
 

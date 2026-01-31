@@ -200,3 +200,53 @@ def get_player_average_stats(player_id):
         return jsonify(average_stats)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@stats_bp.route("/value-for-money", methods=["GET"])
+def get_value_for_money():
+    try:
+        # 获取所有球员信息
+        players = PlayerInformation.query.all()
+        player_data = []
+
+        for player in players:
+            # 获取该球员的所有比赛统计
+            stats = PlayerGameStats.query.filter(PlayerGameStats.personId == player.player_id).all()
+            
+            if stats:
+                # 计算该球员的平均评分
+                total_rating = 0
+                for stat in stats:
+                    rating = calculate_player_score(
+                        three_pointers=stat.threePointersMade,
+                        two_pointers=stat.twoPointersMade,
+                        free_throws=stat.freeThrowsMade,
+                        offensive_rebounds=stat.reboundsOffensive,
+                        defensive_rebounds=stat.reboundsDefensive,
+                        assists=stat.assists,
+                        steals=stat.steals,
+                        blocks=stat.blocks,
+                        field_goals_attempted=stat.threePointersAttempted + stat.twoPointersAttempted,
+                        field_goals_made=stat.threePointersMade + stat.twoPointersMade,
+                        free_throws_attempted=stat.freeThrowsAttempted,
+                        turnovers=stat.turnovers,
+                        personal_fouls=stat.foulsPersonal,
+                        team_won=stat.IS_WINNER,
+                        minutes_played=stat.minutes,
+                    )
+                    total_rating += rating
+                
+                average_rating = total_rating / len(stats)
+                
+                player_data.append({
+                    "player_id": player.player_id,
+                    "player_name": player.full_name,
+                    "team_name": player.team_name,
+                    "position": player.position,
+                    "salary": player.salary,
+                    "average_rating": average_rating
+                })
+
+        return jsonify({"players": player_data})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
