@@ -249,11 +249,10 @@ const handleImageError = (event) => {
   event.target.src = 'https://via.placeholder.com/50';
 };
 
-// 格式化上场时间为 xx:xx 格式
+// 格式化上场时间为整数分钟
 const formatMinutes = (minutes) => {
   const mins = Math.floor(minutes);
-  const secs = Math.round((minutes - mins) * 60);
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  return mins.toString();
 };
 
 // 格式化投篮统计为 {命中数}/{出手数} 格式

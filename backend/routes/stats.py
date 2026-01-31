@@ -86,15 +86,9 @@ def get_player_game_stats():
             }
             players_with_score.append(player_data)
 
-        # TODO: 统一按照 rating 排序
-        if sort_by == "rating":
-            players_with_score.sort(
-                key=lambda x: x["rating"], reverse=(sort_order == "desc")
-            )
-        elif sort_by == "points":
-            players_with_score.sort(
-                key=lambda x: x["points"], reverse=(sort_order == "desc")
-            )
+        players_with_score.sort(
+            key=lambda x: x["rating"], reverse=(sort_order == "desc")
+        )
 
         return {"players": players_with_score, "game_date": game_date}
     except Exception as e:
