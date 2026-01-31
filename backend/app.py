@@ -1,11 +1,11 @@
+from api.auth import auth_bp
+from api.basic_information import basic_information_bp
+from api.lineup import lineup_bp
+from api.rule import rule_bp
+from api.stats import stats_bp
 from config import init_db
 from flask import Flask
 from flask_cors import CORS
-from routes.auth import auth_bp
-from routes.basic_information import basic_information_bp
-from routes.lineup import lineup_bp
-from routes.rule import rule_bp
-from routes.stats import stats_bp
 
 app = Flask(__name__)
 CORS(app)  # TODO: 添加前端域名

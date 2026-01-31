@@ -1,11 +1,11 @@
 import time
 from datetime import datetime
 
+from api.rule import SALARY_CAP
 from flask import Blueprint, jsonify, request
 from models import Lineup, LineupPlayer, User, db
-from routes.rule import SALARY_CAP
-from utils.permission import login_required
 from utils.jwt import get_current_user_id
+from utils.permission import login_required
 from utils.rule import PlayerCountRule, SalaryRule
 
 lineup_bp = Blueprint("lineup", __name__)
