@@ -142,7 +142,9 @@ def get_player_game_stats_by_id(player_id):
 @stats_bp.route("/player/<int:player_id>/average-stats", methods=["GET"])
 def get_player_average_stats(player_id):
     try:
-        stats = PlayerGameStats.query.filter(PlayerGameStats.personId == player_id).all()
+        stats = PlayerGameStats.query.filter(
+            PlayerGameStats.personId == player_id
+        ).all()
         if not stats:
             return jsonify({"error": "No stats found for this player"}), 404
         total_games = len(stats)
@@ -160,16 +162,22 @@ def get_player_average_stats(player_id):
         total_blocks = sum(stat.blocks for stat in stats)
         total_turnovers = sum(stat.turnovers for stat in stats)
         total_three_pointers_made = sum(stat.threePointersMade for stat in stats)
-        total_three_pointers_attempted = sum(stat.threePointersAttempted for stat in stats)
+        total_three_pointers_attempted = sum(
+            stat.threePointersAttempted for stat in stats
+        )
         total_two_pointers_made = sum(stat.twoPointersMade for stat in stats)
         total_two_pointers_attempted = sum(stat.twoPointersAttempted for stat in stats)
         total_free_throws_made = sum(stat.freeThrowsMade for stat in stats)
         total_free_throws_attempted = sum(stat.freeThrowsAttempted for stat in stats)
 
         field_goals_made = total_three_pointers_made + total_two_pointers_made
-        field_goals_attempted = total_three_pointers_attempted + total_two_pointers_attempted
+        field_goals_attempted = (
+            total_three_pointers_attempted + total_two_pointers_attempted
+        )
         field_goal_percentage = (
-            (field_goals_made / field_goals_attempted * 100) if field_goals_attempted > 0 else 0
+            (field_goals_made / field_goals_attempted * 100)
+            if field_goals_attempted > 0
+            else 0
         )
         three_point_percentage = (
             (total_three_pointers_made / total_three_pointers_attempted * 100)
@@ -205,16 +213,15 @@ def get_player_average_stats(player_id):
 @stats_bp.route("/value-for-money", methods=["GET"])
 def get_value_for_money():
     try:
-        # 获取所有球员信息
         players = PlayerInformation.query.all()
         player_data = []
 
         for player in players:
-            # 获取该球员的所有比赛统计
-            stats = PlayerGameStats.query.filter(PlayerGameStats.personId == player.player_id).all()
-            
+            stats = PlayerGameStats.query.filter(
+                PlayerGameStats.personId == player.player_id
+            ).all()
+
             if stats:
-                # 计算该球员的平均评分
                 total_rating = 0
                 for stat in stats:
                     rating = calculate_player_score(
@@ -226,7 +233,8 @@ def get_value_for_money():
                         assists=stat.assists,
                         steals=stat.steals,
                         blocks=stat.blocks,
-                        field_goals_attempted=stat.threePointersAttempted + stat.twoPointersAttempted,
+                        field_goals_attempted=stat.threePointersAttempted
+                        + stat.twoPointersAttempted,
                         field_goals_made=stat.threePointersMade + stat.twoPointersMade,
                         free_throws_attempted=stat.freeThrowsAttempted,
                         turnovers=stat.turnovers,
@@ -235,17 +243,28 @@ def get_value_for_money():
                         minutes_played=stat.minutes,
                     )
                     total_rating += rating
-                
+
                 average_rating = total_rating / len(stats)
-                
-                player_data.append({
-                    "player_id": player.player_id,
-                    "player_name": player.full_name,
-                    "team_name": player.team_name,
-                    "position": player.position,
-                    "salary": player.salary,
-                    "average_rating": average_rating
-                })
+
+                player_data.append(
+                    {
+                        "player_id": player.player_id,
+                        "player_name": player.full_name,
+                        "team_name": player.team_name,
+                        "position": player.position,
+                        "salary": player.salary,
+                        "average_rating": average_rating,
+                    }
+                )
+        player_data.sort(key=lambda x: x["salary"], reverse=True)
+        for i, player in enumerate(player_data):
+            player["salary_rank"] = i + 1
+
+        player_data.sort(key=lambda x: x["average_rating"], reverse=True)
+        for i, player in enumerate(player_data):
+            player["rating_rank"] = i + 1
+
+        player_data.sort(key=lambda x: x["salary"])
 
         return jsonify({"players": player_data})
     except Exception as e:

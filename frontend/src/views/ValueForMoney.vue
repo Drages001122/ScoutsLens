@@ -11,6 +11,7 @@
 import { ref, onMounted } from 'vue'
 import Chart from 'chart.js/auto'
 import API_CONFIG from '../config/api'
+import { translateTeam, translatePosition } from '../utils/translation'
 
 const chartCanvas = ref(null)
 let chartInstance = null
@@ -46,7 +47,9 @@ const createChart = (playerData) => {
           y: player.average_rating,
           player_name: player.player_name,
           team_name: player.team_name,
-          position: player.position
+          position: player.position,
+          salary_rank: player.salary_rank,
+          rating_rank: player.rating_rank
         })),
         backgroundColor: 'rgba(75, 192, 192, 0.6)',
         borderColor: 'rgba(75, 192, 192, 1)',
@@ -65,10 +68,12 @@ const createChart = (playerData) => {
               const point = context.raw
               return [
                 `球员: ${point.player_name}`,
-                `球队: ${point.team_name}`,
-                `位置: ${point.position}`,
+                `球队: ${translateTeam(point.team_name)}`,
+                `位置: ${translatePosition(point.position)}`,
                 `薪资: ${point.x}`,
-                `平均评分: ${point.y.toFixed(2)}`
+                `平均评分: ${point.y.toFixed(2)}`,
+                `薪资排名: ${point.salary_rank || '-'}`,
+                `评分排名: ${point.rating_rank || '-'}`
               ]
             }
           }
