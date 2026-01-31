@@ -1,6 +1,19 @@
 <template>
   <div class="value-for-money">
     <h1>球员性价比分析</h1>
+    <div class="controls">
+      <div class="control-group">
+        <label for="viewType">查看方式：</label>
+        <select id="viewType" v-model="viewType" @change="handleViewTypeChange">
+          <option value="average">平均评分</option>
+          <option value="date">按日期查看</option>
+        </select>
+      </div>
+      <div class="control-group" v-if="viewType === 'date'">
+        <label for="gameDate">选择日期：</label>
+        <input type="date" id="gameDate" v-model="gameDate" @change="handleDateChange">
+      </div>
+    </div>
     <div class="chart-container">
       <canvas ref="chartCanvas"></canvas>
     </div>
@@ -20,10 +33,16 @@ const formatSalary = (salary) => {
 
 const chartCanvas = ref(null)
 let chartInstance = null
+const viewType = ref('average')
+const gameDate = ref('')
 
 const fetchPlayerData = async () => {
   try {
-    const response = await fetch(`${API_CONFIG.BASE_URL}/api/stats/value-for-money`)
+    let url = `${API_CONFIG.BASE_URL}/api/stats/value-for-money`
+    if (viewType.value === 'date' && gameDate.value) {
+      url += `?game_date=${gameDate.value}`
+    }
+    const response = await fetch(url)
     if (!response.ok) {
       throw new Error('Failed to fetch player data')
     }
@@ -41,6 +60,14 @@ const createChart = (playerData) => {
   }
 
   const ctx = chartCanvas.value.getContext('2d')
+  
+  const chartTitle = viewType.value === 'average' 
+    ? '球员薪资 vs 平均评分' 
+    : `球员薪资 vs ${gameDate.value}评分`
+  
+  const yAxisTitle = viewType.value === 'average' 
+    ? '平均评分' 
+    : '当日评分'
   
   chartInstance = new Chart(ctx, {
     type: 'scatter',
@@ -71,12 +98,15 @@ const createChart = (playerData) => {
           callbacks: {
             label: function(context) {
               const point = context.raw
+              const ratingLabel = viewType.value === 'average' 
+                ? '平均评分' 
+                : `当日评分`
               return [
                 `球员: ${point.player_name}`,
                 `球队: ${translateTeam(point.team_name)}`,
                 `位置: ${translatePosition(point.position)}`,
                 `薪资: ${formatSalary(point.x)}`,
-                `平均评分: ${point.y.toFixed(2)}`,
+                `${ratingLabel}: ${point.y.toFixed(2)}`,
                 `薪资排名: ${point.salary_rank || '-'}`,
                 `评分排名: ${point.rating_rank || '-'}`
               ]
@@ -88,7 +118,7 @@ const createChart = (playerData) => {
         },
         title: {
           display: true,
-          text: '球员薪资 vs 平均评分'
+          text: chartTitle
         }
       },
       scales: {
@@ -101,12 +131,26 @@ const createChart = (playerData) => {
         y: {
           title: {
             display: true,
-            text: '平均评分'
+            text: yAxisTitle
           }
         }
       }
     }
   })
+}
+
+const handleViewTypeChange = async () => {
+  if (viewType.value === 'average') {
+    const playerData = await fetchPlayerData()
+    createChart(playerData)
+  }
+}
+
+const handleDateChange = async () => {
+  if (gameDate.value) {
+    const playerData = await fetchPlayerData()
+    createChart(playerData)
+  }
 }
 
 onMounted(async () => {
@@ -121,6 +165,32 @@ onMounted(async () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.controls {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.control-group label {
+  font-weight: bold;
+  color: #333;
+}
+
+.control-group select,
+.control-group input[type="date"] {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
 }
 
 .chart-container {

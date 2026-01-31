@@ -213,17 +213,25 @@ def get_player_average_stats(player_id):
 @stats_bp.route("/value-for-money", methods=["GET"])
 def get_value_for_money():
     try:
+        game_date = request.args.get("game_date")
         players = PlayerInformation.query.all()
         player_data = []
 
         for player in players:
-            stats = PlayerGameStats.query.filter(
-                PlayerGameStats.personId == player.player_id
-            ).all()
+            if game_date:
+                # 按日期筛选
+                try:
+                    game_date_obj = date.fromisoformat(game_date)
+                except ValueError:
+                    return jsonify({"error": "Invalid date format, use YYYY-MM-DD"}), 400
 
-            if stats:
-                total_rating = 0
-                for stat in stats:
+                stat = PlayerGameStats.query.filter(
+                    PlayerGameStats.personId == player.player_id,
+                    PlayerGameStats.game_date == game_date_obj
+                ).first()
+
+                if stat:
+                    # 计算当日评分
                     rating = calculate_player_score(
                         three_pointers=stat.threePointersMade,
                         two_pointers=stat.twoPointersMade,
@@ -242,30 +250,70 @@ def get_value_for_money():
                         team_won=stat.IS_WINNER,
                         minutes_played=stat.minutes,
                     )
-                    total_rating += rating
 
-                average_rating = total_rating / len(stats)
+                    player_data.append(
+                        {
+                            "player_id": player.player_id,
+                            "player_name": player.full_name,
+                            "team_name": player.team_name,
+                            "position": player.position,
+                            "salary": player.salary,
+                            "average_rating": rating,  # 使用当日评分
+                        }
+                    )
+            else:
+                # 计算平均评分
+                stats = PlayerGameStats.query.filter(
+                    PlayerGameStats.personId == player.player_id
+                ).all()
 
-                player_data.append(
-                    {
-                        "player_id": player.player_id,
-                        "player_name": player.full_name,
-                        "team_name": player.team_name,
-                        "position": player.position,
-                        "salary": player.salary,
-                        "average_rating": average_rating,
-                    }
-                )
-        player_data.sort(key=lambda x: x["salary"], reverse=True)
-        for i, player in enumerate(player_data):
-            player["salary_rank"] = i + 1
+                if stats:
+                    total_rating = 0
+                    for stat in stats:
+                        rating = calculate_player_score(
+                            three_pointers=stat.threePointersMade,
+                            two_pointers=stat.twoPointersMade,
+                            free_throws=stat.freeThrowsMade,
+                            offensive_rebounds=stat.reboundsOffensive,
+                            defensive_rebounds=stat.reboundsDefensive,
+                            assists=stat.assists,
+                            steals=stat.steals,
+                            blocks=stat.blocks,
+                            field_goals_attempted=stat.threePointersAttempted
+                            + stat.twoPointersAttempted,
+                            field_goals_made=stat.threePointersMade + stat.twoPointersMade,
+                            free_throws_attempted=stat.freeThrowsAttempted,
+                            turnovers=stat.turnovers,
+                            personal_fouls=stat.foulsPersonal,
+                            team_won=stat.IS_WINNER,
+                            minutes_played=stat.minutes,
+                        )
+                        total_rating += rating
 
-        player_data.sort(key=lambda x: x["average_rating"], reverse=True)
-        for i, player in enumerate(player_data):
-            player["rating_rank"] = i + 1
+                    average_rating = total_rating / len(stats)
 
-        player_data.sort(key=lambda x: x["salary"])
+                    player_data.append(
+                        {
+                            "player_id": player.player_id,
+                            "player_name": player.full_name,
+                            "team_name": player.team_name,
+                            "position": player.position,
+                            "salary": player.salary,
+                            "average_rating": average_rating,
+                        }
+                    )
+        
+        if player_data:
+            player_data.sort(key=lambda x: x["salary"], reverse=True)
+            for i, player in enumerate(player_data):
+                player["salary_rank"] = i + 1
 
-        return jsonify({"players": player_data})
+            player_data.sort(key=lambda x: x["average_rating"], reverse=True)
+            for i, player in enumerate(player_data):
+                player["rating_rank"] = i + 1
+
+            player_data.sort(key=lambda x: x["salary"])
+
+        return jsonify({"players": player_data, "game_date": game_date})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
