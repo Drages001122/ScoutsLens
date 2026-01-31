@@ -1,10 +1,11 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
 const user = ref(null)
+const showDropdown = ref(false)
 
 const loadUser = () => {
   const userStr = localStorage.getItem('user')
@@ -42,13 +43,18 @@ const handleLogout = () => {
       </div>
       <div class="banner-right">
         <div v-if="user" class="user-info">
-          <span class="username">{{ user.username }}</span>
-          <button @click="handleLogout" class="logout-button">退出</button>
+          <div class="username-dropdown" @click="showDropdown = !showDropdown">
+            <span class="username">{{ user.username }}</span>
+            <span class="dropdown-arrow"></span>
+          </div>
+          <div v-if="showDropdown" class="dropdown-menu">
+            <button @click="handleLogout" class="logout-button">退出登录</button>
+          </div>
         </div>
         <router-link v-else to="/login" class="login-link">登录</router-link>
       </div>
     </header>
-    
+
     <main class="content">
       <router-view></router-view>
     </main>
@@ -102,7 +108,21 @@ const handleLogout = () => {
 .user-info {
   display: flex;
   align-items: center;
-  gap: 15px;
+  position: relative;
+}
+
+.username-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: color 0.3s;
+}
+
+.username-dropdown:hover .username {
+  color: #ffcc00;
 }
 
 .username {
@@ -111,19 +131,38 @@ const handleLogout = () => {
   font-weight: bold;
 }
 
-.logout-button {
-  background-color: #ff4444;
+.dropdown-arrow {
   color: white;
-  border: none;
-  padding: 8px 16px;
+  font-size: 12px;
+  transition: transform 0.3s;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 5px;
+  background-color: white;
   border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  min-width: 120px;
+  z-index: 1001;
+}
+
+.logout-button {
+  background-color: transparent;
+  color: #333;
+  border: none;
+  padding: 10px 15px;
+  width: 100%;
+  text-align: left;
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.3s;
 }
 
 .logout-button:hover {
-  background-color: #cc0000;
+  background-color: #f0f0f0;
 }
 
 .login-link {
