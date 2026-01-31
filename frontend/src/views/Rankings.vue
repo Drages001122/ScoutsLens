@@ -207,7 +207,7 @@ const fetchPlayerStats = async () => {
   
   try {
     const response = await fetch(
-      `${apiConfig.BASE_URL}${apiConfig.ENDPOINTS.PLAYERS_GAME_STATS}?game_date=${selectedDate.value}&sort_order=${sortOrder.value}&page=${currentPage.value}&per_page=${perPage.value}`
+      `${apiConfig.BASE_URL}${apiConfig.ENDPOINTS.STATS}/game-stats?game_date=${selectedDate.value}&sort_order=${sortOrder.value}&page=${currentPage.value}&per_page=${perPage.value}`
     );
     
     if (!response.ok) {

@@ -4,7 +4,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from models import Lineup, LineupPlayer, User, db
 from routes.rule import SALARY_CAP
-from utils.auth import login_required
+from utils.permission import login_required
 from utils.jwt import get_current_user_id
 from utils.rule import PlayerCountRule, SalaryRule
 

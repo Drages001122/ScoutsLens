@@ -5,10 +5,13 @@ from models import PlayerGameStats, PlayerInformation
 from utils.pagination import paginated_response
 from utils.rating import calculate_player_score
 
-players_information_bp = Blueprint("players_information", __name__)
+basic_information_bp = Blueprint("basic_information", __name__)
+
+# 创建新的stats蓝图
+stats_bp = Blueprint("stats", __name__)
 
 
-@players_information_bp.route("/list", methods=["GET"])
+@basic_information_bp.route("/list", methods=["GET"])
 @paginated_response(items_key="players", default_per_page=10)
 def get_players():
     try:
@@ -31,7 +34,7 @@ def get_players():
         return jsonify({"error": str(e)}), 500
 
 
-@players_information_bp.route("/game-stats", methods=["GET"])
+@stats_bp.route("/game-stats", methods=["GET"])
 @paginated_response(items_key="players", default_per_page=10)
 def get_player_game_stats():
     try:
@@ -124,7 +127,7 @@ def get_player_game_stats():
         return jsonify({"error": str(e)}), 500
 
 
-@players_information_bp.route("/player/<int:player_id>/game-stats", methods=["GET"])
+@stats_bp.route("/player/<int:player_id>/game-stats", methods=["GET"])
 def get_player_game_stats_by_id(player_id):
     try:
         # 查询指定球员的所有比赛统计数据
@@ -169,7 +172,7 @@ def get_player_game_stats_by_id(player_id):
         return jsonify({"error": str(e)}), 500
 
 
-@players_information_bp.route("/teams", methods=["GET"])
+@basic_information_bp.route("/teams", methods=["GET"])
 def get_teams():
     try:
         # 查询所有不重复的球队
@@ -189,7 +192,7 @@ def get_teams():
         return jsonify({"error": str(e)}), 500
 
 
-@players_information_bp.route("/team/<int:team_id>/players", methods=["GET"])
+@basic_information_bp.route("/team/<int:team_id>/players", methods=["GET"])
 def get_team_players(team_id):
     try:
         # 查询所有球队

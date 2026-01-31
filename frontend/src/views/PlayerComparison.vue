@@ -120,7 +120,7 @@ const loadTeams = async () => {
   try {
     isLoadingTeams.value = true
     console.log('开始加载球队列表...')
-    const response = await fetch('/api/players_information/teams')
+    const response = await fetch('/api/basic_information/teams')
     console.log('球队列表请求响应状态:', response.status)
     console.log('球队列表请求响应URL:', response.url)
     if (!response.ok) {
@@ -158,7 +158,7 @@ const loadPlayers = async (teamId) => {
   try {
     isLoadingPlayers.value = true
     console.log('开始加载球队球员列表，teamId:', teamId)
-    const response = await fetch(`/api/players_information/team/${teamId}/players`)
+    const response = await fetch(`/api/basic_information/team/${teamId}/players`)
     console.log('球员列表请求响应状态:', response.status)
     if (!response.ok) {
       const errorText = await response.text()
@@ -260,7 +260,7 @@ const removePlayer = (playerId) => {
 // 加载球员数据
 const loadPlayerData = async (playerId) => {
   try {
-    const response = await fetch(`/api/players_information/player/${playerId}/game-stats`)
+    const response = await fetch(`/api/stats/player/${playerId}/game-stats`)
     if (!response.ok) {
       throw new Error('获取球员数据失败')
     }

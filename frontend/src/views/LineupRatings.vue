@@ -279,7 +279,7 @@ export default {
     },
     fetchPlayerStats() {
       // 获取选中日期的球员统计数据
-      fetch(`${apiConfig.BASE_URL}/api/players_information/game-stats?game_date=${this.selectedDate}&per_page=1000`, {
+      fetch(`${apiConfig.BASE_URL}/api/stats/game-stats?game_date=${this.selectedDate}&per_page=1000`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }

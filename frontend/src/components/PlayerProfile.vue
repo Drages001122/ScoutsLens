@@ -83,7 +83,7 @@ const loadChart = async () => {
   
   try {
     // 从API获取球员比赛数据
-    const url = `/api/players_information/player/${props.player.player_id}/game-stats`
+    const url = `/api/stats/player/${props.player.player_id}/game-stats`
     console.log('请求URL:', url)
     const response = await fetch(url)
     
