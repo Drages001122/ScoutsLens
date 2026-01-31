@@ -188,7 +188,7 @@ const publishLineup = async () => {
     }
 
     // 发送请求
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.LINEUP.CREATE}`, {
+    const response = await fetch(`${API_CONFIG.ENDPOINTS.LINEUP.CREATE}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

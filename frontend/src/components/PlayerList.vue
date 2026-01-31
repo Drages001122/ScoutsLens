@@ -275,7 +275,7 @@ const fetchPlayers = async (page = 1) => {
       queryParams.append('teams', team)
     })
     
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.BASIC_INFORMATION}/list-players?${queryParams.toString()}`)
+    const response = await fetch(`${API_CONFIG.ENDPOINTS.BASIC_INFORMATION}/list-players?${queryParams.toString()}`)
     
     if (!response.ok) {
       throw new Error('API调用失败')
