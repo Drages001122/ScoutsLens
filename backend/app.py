@@ -3,7 +3,8 @@ from flask import Flask
 from flask_cors import CORS
 from routes.auth import auth_bp
 from routes.lineup import lineup_bp
-from routes.players_information import basic_information_bp, stats_bp
+from routes.players_information import basic_information_bp
+from routes.stats import stats_bp
 from routes.rule import rule_bp
 
 app = Flask(__name__)
