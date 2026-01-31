@@ -13,6 +13,11 @@ import Chart from 'chart.js/auto'
 import API_CONFIG from '../config/api'
 import { translateTeam, translatePosition } from '../utils/translation'
 
+// 格式化薪资函数，显示为$开头且3位一个逗号的形式
+const formatSalary = (salary) => {
+  return '$' + salary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
 const chartCanvas = ref(null)
 let chartInstance = null
 
@@ -51,8 +56,8 @@ const createChart = (playerData) => {
           salary_rank: player.salary_rank,
           rating_rank: player.rating_rank
         })),
-        backgroundColor: 'rgba(75, 192, 192, 0.6)',
-        borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        borderColor: 'rgba(54, 162, 235, 1)',
         borderWidth: 1,
         pointRadius: 5,
         pointHoverRadius: 8
@@ -70,7 +75,7 @@ const createChart = (playerData) => {
                 `球员: ${point.player_name}`,
                 `球队: ${translateTeam(point.team_name)}`,
                 `位置: ${translatePosition(point.position)}`,
-                `薪资: ${point.x}`,
+                `薪资: ${formatSalary(point.x)}`,
                 `平均评分: ${point.y.toFixed(2)}`,
                 `薪资排名: ${point.salary_rank || '-'}`,
                 `评分排名: ${point.rating_rank || '-'}`
