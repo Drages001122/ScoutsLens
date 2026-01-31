@@ -92,8 +92,8 @@
                         >
                       </td>
                       <td class="player-name">{{ player.full_name }}</td>
-                      <td>{{ player.team_name }}</td>
-                      <td>{{ player.position }}</td>
+                      <td>{{ translateTeam(player.team_name) }}</td>
+                      <td>{{ translatePosition(player.position) }}</td>
                       <td>${{ player.salary.toLocaleString() }}</td>
                       <td class="player-slot">{{ player.slot }}</td>
                       <td class="score">{{ this.playerStats[player.player_id]?.rating ? this.playerStats[player.player_id].rating.toFixed(1) : '0' }}</td>
@@ -160,8 +160,8 @@
                         >
                       </td>
                       <td class="player-name">{{ player.full_name }}</td>
-                      <td>{{ player.team_name }}</td>
-                      <td>{{ player.position }}</td>
+                      <td>{{ translateTeam(player.team_name) }}</td>
+                      <td>{{ translatePosition(player.position) }}</td>
                       <td>${{ player.salary.toLocaleString() }}</td>
                       <td class="score">{{ this.playerStats[player.player_id]?.rating ? this.playerStats[player.player_id].rating.toFixed(1) : '0' }}</td>
                       <td>{{ this.playerStats[player.player_id]?.minutes ? this.formatMinutes(this.playerStats[player.player_id].minutes) : '0' }}</td>
@@ -206,6 +206,7 @@
 <script>
 import PlayerProfile from '../components/PlayerProfile.vue';
 import API_CONFIG from '../config/api.js';
+import { translateTeam, translatePosition } from '../utils/translation.js';
 
 const apiConfig = API_CONFIG;
 
@@ -233,6 +234,8 @@ export default {
     this.fetchLineups()
   },
   methods: {
+    translateTeam,
+    translatePosition,
     fetchLineups() {
       this.loading = true
       this.error = null
