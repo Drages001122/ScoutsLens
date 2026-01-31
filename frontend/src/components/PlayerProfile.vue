@@ -16,19 +16,48 @@
             >
           </div>
           <div class="player-details">
-            <div class="detail-item">
-              <span class="detail-label">球队：</span>
-              <span class="detail-value">{{ translateTeam(player?.team_name) }}</span>
+            <div class="basic-info">
+              <div class="detail-item">
+                <span class="detail-label">球队：</span>
+                <span class="detail-value">{{ translateTeam(player?.team_name) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">位置：</span>
+                <span class="detail-value">{{ translatePosition(player?.position) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">薪资：</span>
+                <span class="detail-value">${{ player?.salary?.toLocaleString() }}</span>
+              </div>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">位置：</span>
-              <span class="detail-value">{{ translatePosition(player?.position) }}</span>
+            <div v-if="averageStats" class="average-stats-container">
+              <div class="stats-header">
+                <div class="stat-cell">场均得分</div>
+                <div class="stat-cell">场均篮板</div>
+                <div class="stat-cell">场均助攻</div>
+                <div class="stat-cell">场均抢断</div>
+                <div class="stat-cell">场均盖帽</div>
+                <div class="stat-cell">场均失误</div>
+                <div class="stat-cell">场均时间</div>
+                <div class="stat-cell">投篮命中率</div>
+                <div class="stat-cell">三分命中率</div>
+                <div class="stat-cell">罚球命中率</div>
+                <div class="stat-cell">比赛场次</div>
+              </div>
+              <div class="stats-values">
+                <div class="stat-cell">{{ averageStats.points_per_game }}</div>
+                <div class="stat-cell">{{ averageStats.rebounds_per_game }}</div>
+                <div class="stat-cell">{{ averageStats.assists_per_game }}</div>
+                <div class="stat-cell">{{ averageStats.steals_per_game }}</div>
+                <div class="stat-cell">{{ averageStats.blocks_per_game }}</div>
+                <div class="stat-cell">{{ averageStats.turnovers_per_game }}</div>
+                <div class="stat-cell">{{ averageStats.minutes_per_game }}分钟</div>
+                <div class="stat-cell">{{ averageStats.field_goal_percentage }}%</div>
+                <div class="stat-cell">{{ averageStats.three_point_percentage }}%</div>
+                <div class="stat-cell">{{ averageStats.free_throw_percentage }}%</div>
+                <div class="stat-cell">{{ averageStats.games_played }}</div>
+              </div>
             </div>
-            <div class="detail-item">
-              <span class="detail-label">薪资：</span>
-              <span class="detail-value">${{ player?.salary?.toLocaleString() }}</span>
-            </div>
-            <!-- 这里可以添加更多个人信息 -->
           </div>
         </div>
         <div class="player-stats-section">
@@ -64,10 +93,31 @@ const emit = defineEmits(['close'])
 // Refs
 const ratingChart = ref(null)
 const chartInstance = ref(null)
+const averageStats = ref(null)
 
 // 关闭弹窗
 const close = () => {
   emit('close')
+}
+
+// 加载场均数据
+const loadAverageStats = async () => {
+  if (!props.player) return
+  
+  try {
+    const url = `/api/stats/player/${props.player.player_id}/average-stats`
+    const response = await fetch(url)
+    
+    if (!response.ok) {
+      console.error('获取场均数据失败')
+      return
+    }
+    
+    const data = await response.json()
+    averageStats.value = data
+  } catch (error) {
+    console.error('加载场均数据失败:', error)
+  }
 }
 
 // 计算球员评分平均值
@@ -362,13 +412,14 @@ const generateMockMatchData = () => {
 // 监听visible和player变化
 watch(() => props.visible, (newValue) => {
   if (newValue) {
-    // 延迟加载图表，确保DOM已经渲染
+    loadAverageStats()
     setTimeout(loadChart, 100)
   }
 })
 
 watch(() => props.player, () => {
   if (props.visible) {
+    loadAverageStats()
     loadChart()
   }
 })
@@ -467,6 +518,12 @@ onUnmounted(() => {
 
 .player-details {
   flex: 1;
+  display: flex;
+  gap: 40px;
+}
+
+.basic-info {
+  min-width: 200px;
 }
 
 .detail-item {
@@ -486,6 +543,44 @@ onUnmounted(() => {
   color: #333;
   font-size: 14px;
   font-weight: 500;
+}
+
+.average-stats-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stats-header,
+.stats-values {
+  display: flex;
+  gap: 2px;
+}
+
+.stat-cell {
+  flex: 1;
+  padding: 8px 10px;
+  text-align: center;
+  min-width: 80px;
+  font-size: 12px;
+}
+
+.stats-header {
+  background-color: #4a5568;
+  color: white;
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+}
+
+.stats-values {
+  background-color: #f8f9fa;
+  border-radius: 0 0 6px 6px;
+}
+
+.stats-values .stat-cell {
+  font-weight: 500;
+  color: #333;
 }
 
 .player-stats-section {
@@ -510,6 +605,27 @@ onUnmounted(() => {
     flex-direction: column;
     align-items: center;
     text-align: center;
+  }
+  
+  .player-details {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .basic-info {
+    min-width: auto;
+  }
+  
+  .stats-header,
+  .stats-values {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  .stat-cell {
+    min-width: 70px;
+    padding: 6px 8px;
+    font-size: 11px;
   }
   
   .detail-item {

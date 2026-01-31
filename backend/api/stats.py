@@ -138,3 +138,71 @@ def get_player_game_stats_by_id(player_id):
         return jsonify({"player_id": player_id, "game_stats": game_stats})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@stats_bp.route("/player/<int:player_id>/average-stats", methods=["GET"])
+def get_player_average_stats(player_id):
+    try:
+        # 查询指定球员的所有比赛统计数据
+        stats = PlayerGameStats.query.filter(PlayerGameStats.personId == player_id).all()
+
+        if not stats:
+            return jsonify({"error": "No stats found for this player"}), 404
+
+        total_games = len(stats)
+
+        # 计算场均数据
+        total_minutes = sum(stat.minutes for stat in stats)
+        total_points = sum(
+            stat.threePointersMade * 3 + stat.twoPointersMade * 2 + stat.freeThrowsMade
+            for stat in stats
+        )
+        total_rebounds = sum(
+            stat.reboundsOffensive + stat.reboundsDefensive for stat in stats
+        )
+        total_assists = sum(stat.assists for stat in stats)
+        total_steals = sum(stat.steals for stat in stats)
+        total_blocks = sum(stat.blocks for stat in stats)
+        total_turnovers = sum(stat.turnovers for stat in stats)
+        total_three_pointers_made = sum(stat.threePointersMade for stat in stats)
+        total_three_pointers_attempted = sum(stat.threePointersAttempted for stat in stats)
+        total_two_pointers_made = sum(stat.twoPointersMade for stat in stats)
+        total_two_pointers_attempted = sum(stat.twoPointersAttempted for stat in stats)
+        total_free_throws_made = sum(stat.freeThrowsMade for stat in stats)
+        total_free_throws_attempted = sum(stat.freeThrowsAttempted for stat in stats)
+
+        # 计算投篮命中率
+        field_goals_made = total_three_pointers_made + total_two_pointers_made
+        field_goals_attempted = total_three_pointers_attempted + total_two_pointers_attempted
+        field_goal_percentage = (
+            (field_goals_made / field_goals_attempted * 100) if field_goals_attempted > 0 else 0
+        )
+        three_point_percentage = (
+            (total_three_pointers_made / total_three_pointers_attempted * 100)
+            if total_three_pointers_attempted > 0
+            else 0
+        )
+        free_throw_percentage = (
+            (total_free_throws_made / total_free_throws_attempted * 100)
+            if total_free_throws_attempted > 0
+            else 0
+        )
+
+        average_stats = {
+            "player_id": player_id,
+            "games_played": total_games,
+            "minutes_per_game": round(total_minutes / total_games, 1),
+            "points_per_game": round(total_points / total_games, 1),
+            "rebounds_per_game": round(total_rebounds / total_games, 1),
+            "assists_per_game": round(total_assists / total_games, 1),
+            "steals_per_game": round(total_steals / total_games, 1),
+            "blocks_per_game": round(total_blocks / total_games, 1),
+            "turnovers_per_game": round(total_turnovers / total_games, 1),
+            "field_goal_percentage": round(field_goal_percentage, 1),
+            "three_point_percentage": round(three_point_percentage, 1),
+            "free_throw_percentage": round(free_throw_percentage, 1),
+        }
+
+        return jsonify(average_stats)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
