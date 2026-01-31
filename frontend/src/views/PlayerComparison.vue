@@ -369,6 +369,18 @@ const getPlayerColor = (index) => {
   return colors[index % colors.length]
 }
 
+// 计算球员评分平均值
+const calculatePlayerAverage = (playerId) => {
+  const playerData = comparisonData.value[playerId]
+  if (!playerData || !playerData.ratings) return 0
+  
+  const validRatings = playerData.ratings.filter(rating => rating !== null && !isNaN(rating))
+  if (validRatings.length === 0) return 0
+  
+  const sum = validRatings.reduce((acc, rating) => acc + parseFloat(rating), 0)
+  return sum / validRatings.length
+}
+
 // 更新图表
 const updateChart = async () => {
   if (!comparisonChart.value || comparisonPlayers.value.length === 0) return
@@ -386,6 +398,11 @@ const updateChart = async () => {
     // 注册必要的组件
     Chart.register(LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend)
     
+    // 获取所有日期标签（使用第一个球员的日期作为基准）
+    const labels = comparisonPlayers.value.length > 0 
+      ? comparisonData.value[comparisonPlayers.value[0].player_id]?.dates || []
+      : []
+    
     // 准备图表数据
     const datasets = comparisonPlayers.value.map((player, index) => {
       const playerData = comparisonData.value[player.player_id]
@@ -400,10 +417,23 @@ const updateChart = async () => {
       }
     })
     
-    // 获取所有日期标签（使用第一个球员的日期作为基准）
-    const labels = comparisonPlayers.value.length > 0 
-      ? comparisonData.value[comparisonPlayers.value[0].player_id]?.dates || []
-      : []
+    // 为每个球员添加平均值水平线
+    comparisonPlayers.value.forEach((player, index) => {
+      const average = calculatePlayerAverage(player.player_id)
+      console.log(`球员 ${player.full_name} 的平均值:`, average)
+      if (average !== 0 && !isNaN(average)) {
+        datasets.push({
+          label: `${player.full_name} 平均值`,
+          data: Array(labels.length).fill(average),
+          borderColor: getPlayerColor(index),
+          borderWidth: 2,
+          borderDash: [5, 5],
+          pointRadius: 0,
+          fill: false,
+          tension: 0
+        })
+      }
+    })
     
     // 计算y轴上下限 - 基于所有球员的数据点
     const allRatings = []
