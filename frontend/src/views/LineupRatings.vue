@@ -544,7 +544,7 @@ h2 {
 .players-table th {
   background-color: #f5f5f5;
   padding: 12px 15px;
-  text-align: left;
+  text-align: center;
   font-weight: bold;
   color: #333;
   border-bottom: 2px solid #e0e0e0;
@@ -552,7 +552,18 @@ h2 {
 
 .players-table td {
   padding: 12px 15px;
+  text-align: center;
   border-bottom: 1px solid #f0f0f0;
+}
+
+/* 保持球员姓名左对齐 */
+.players-table .player-name {
+  text-align: left;
+}
+
+/* 保持头像居中 */
+.players-table .player-avatar {
+  text-align: center;
 }
 
 .players-table tr:hover {
