@@ -96,7 +96,7 @@
                       <td>{{ player.position }}</td>
                       <td>${{ player.salary.toLocaleString() }}</td>
                       <td class="player-slot">{{ player.slot }}</td>
-                      <td class="score">{{ this.playerStats[player.player_id]?.score ? this.playerStats[player.player_id].score.toFixed(1) : '0' }}</td>
+                      <td class="score">{{ this.playerStats[player.player_id]?.rating ? this.playerStats[player.player_id].rating.toFixed(1) : '0' }}</td>
                       <td>{{ this.playerStats[player.player_id]?.minutes ? this.formatMinutes(this.playerStats[player.player_id].minutes) : '0' }}</td>
                       <td>{{ this.playerStats[player.player_id]?.points || '0' }}</td>
                       <td>{{ this.playerStats[player.player_id]?.three_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].three_pointers_made, this.playerStats[player.player_id].three_pointers_attempted) : '0' }}</td>
@@ -163,7 +163,7 @@
                       <td>{{ player.team_name }}</td>
                       <td>{{ player.position }}</td>
                       <td>${{ player.salary.toLocaleString() }}</td>
-                      <td class="score">{{ this.playerStats[player.player_id]?.score ? this.playerStats[player.player_id].score.toFixed(1) : '0' }}</td>
+                      <td class="score">{{ this.playerStats[player.player_id]?.rating ? this.playerStats[player.player_id].rating.toFixed(1) : '0' }}</td>
                       <td>{{ this.playerStats[player.player_id]?.minutes ? this.formatMinutes(this.playerStats[player.player_id].minutes) : '0' }}</td>
                       <td>{{ this.playerStats[player.player_id]?.points || '0' }}</td>
                       <td>{{ this.playerStats[player.player_id]?.three_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].three_pointers_made, this.playerStats[player.player_id].three_pointers_attempted) : '0' }}</td>
@@ -326,23 +326,20 @@ export default {
       return `${made}/${attempted}`
     },
     calculateLineupScore(lineup) {
-      // 计算首发球员评分总和 * 2
       const startingPlayersScore = lineup.players
         .filter(p => p.is_starting)
         .reduce((total, player) => {
-          const score = this.playerStats[player.player_id]?.score || 0
-          return total + score
+          const rating = Number(this.playerStats[player.player_id]?.rating) || 0
+          return total + rating
         }, 0) * 2
       
-      // 计算替补球员评分总和
       const benchPlayersScore = lineup.players
         .filter(p => !p.is_starting)
         .reduce((total, player) => {
-          const score = this.playerStats[player.player_id]?.score || 0
-          return total + score
+          const rating = Number(this.playerStats[player.player_id]?.rating) || 0
+          return total + rating
         }, 0)
       
-      // 总评分
       return startingPlayersScore + benchPlayersScore
     },
     // 打开球员个人介绍弹窗

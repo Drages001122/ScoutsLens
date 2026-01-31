@@ -13,7 +13,7 @@ stats_bp = Blueprint("stats", __name__)
 def get_player_game_stats():
     try:
         game_date = request.args.get("game_date")
-        sort_by = request.args.get("sort_by", "score")
+        sort_by = request.args.get("sort_by", "rating")
         sort_order = request.args.get("sort_order", "desc")
 
         if not game_date:
@@ -82,14 +82,14 @@ def get_player_game_stats():
                     + stat.twoPointersMade * 2
                     + stat.freeThrowsMade
                 ),
-                "score": score,  # TODO: 改名叫 rating
+                "rating": score,
             }
             players_with_score.append(player_data)
 
-        # TODO: 统一按照 score （rating）排序
-        if sort_by == "score":
+        # TODO: 统一按照 rating 排序
+        if sort_by == "rating":
             players_with_score.sort(
-                key=lambda x: x["score"], reverse=(sort_order == "desc")
+                key=lambda x: x["rating"], reverse=(sort_order == "desc")
             )
         elif sort_by == "points":
             players_with_score.sort(
@@ -137,7 +137,7 @@ def get_player_game_stats_by_id(player_id):
             # 构建比赛数据
             game_data = {
                 "game_date": stat.game_date.isoformat() if stat.game_date else None,
-                "score": rating,
+                "rating": rating,
             }
             game_stats.append(game_data)
 

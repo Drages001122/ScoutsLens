@@ -96,7 +96,7 @@
             <td>{{ translations.teams[player.team_name] || player.team_name }}</td>
             <td>{{ translatePosition(player.position) }}</td>
             <td>${{ player.salary.toLocaleString() }}</td>
-            <td class="score">{{ player.score.toFixed(1) }}</td>
+            <td class="score">{{ player.rating.toFixed(1) }}</td>
             <td>{{ formatMinutes(player.minutes) }}</td>
             <td>{{ player.points }}</td>
             <td>{{ formatShootingStats(player.three_pointers_made, player.three_pointers_attempted) }}</td>

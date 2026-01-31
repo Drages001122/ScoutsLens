@@ -31,18 +31,14 @@ def get_players():
 @basic_information_bp.route("/teams", methods=["GET"])
 def get_teams():
     try:
-        # 查询所有不重复的球队
         teams = (
             PlayerInformation.query.with_entities(PlayerInformation.team_name)
             .distinct()
             .all()
         )
-
-        # 构建球队列表
         teams_list = []
         for i, team in enumerate(teams, 1):
             teams_list.append({"team_id": i, "team_name": team[0]})
-
         return jsonify({"teams": teams_list})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -51,21 +47,16 @@ def get_teams():
 @basic_information_bp.route("/team/<int:team_id>/players", methods=["GET"])
 def get_team_players(team_id):
     try:
-        # 查询所有球队
-        teams = PlayerInformation.query.distinct(PlayerInformation.team_name).all()
-
-        # 根据team_id获取对应的球队名称
+        teams = (
+            PlayerInformation.query.with_entities(PlayerInformation.team_name)
+            .distinct()
+            .all()
+        )
         if team_id <= 0 or team_id > len(teams):
             return jsonify({"error": "Invalid team ID"}), 400
-
         team_name = teams[team_id - 1].team_name
-
-        # 查询该球队的所有球员
         players = PlayerInformation.query.filter_by(team_name=team_name).all()
-
-        # 构建球员列表
         players_list = [player.to_dict() for player in players]
-
         return jsonify({"players": players_list})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

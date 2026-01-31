@@ -290,7 +290,7 @@ const processDailyGameData = (gameStats) => {
   // 创建日期映射
   const dateMap = {}
   gameStats.forEach(game => {
-    dateMap[game.game_date] = game.score
+    dateMap[game.game_date] = game.rating
   })
   
   // 生成完整的日期范围
