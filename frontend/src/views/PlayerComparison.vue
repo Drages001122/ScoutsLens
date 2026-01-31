@@ -1,86 +1,53 @@
 <template>
   <div class="player-comparison-container">
     <h1>球员比较</h1>
-    
+
     <!-- 球队和球员选择区域 -->
     <div class="player-selection-section">
       <div class="selection-controls">
         <!-- 球队选择 -->
         <div class="team-selector">
           <label for="team-select">选择球队：</label>
-          <select 
-            id="team-select" 
-            v-model="selectedTeam"
-            @change="handleTeamChange"
-            :disabled="isLoadingTeams"
-          >
+          <select id="team-select" v-model="selectedTeam" @change="handleTeamChange" :disabled="isLoadingTeams">
             <option value="">请选择球队</option>
-            <option 
-              v-for="team in teams" 
-              :key="team.team_id"
-              :value="team.team_id"
-            >
+            <option v-for="team in teams" :key="team.team_id" :value="team.team_id">
               {{ translateTeam(team.team_name) }}
             </option>
           </select>
         </div>
-        
+
         <!-- 球员选择 -->
         <div class="player-selector" v-if="selectedTeam">
           <label for="player-select">选择球员：</label>
-          <select 
-            id="player-select" 
-            v-model="selectedPlayerId"
-            :disabled="isLoadingPlayers"
-          >
+          <select id="player-select" v-model="selectedPlayerId" :disabled="isLoadingPlayers">
             <option value="">请选择球员</option>
-            <option 
-              v-for="player in players" 
-              :key="player.player_id"
-              :value="player.player_id"
-            >
+            <option v-for="player in players" :key="player.player_id" :value="player.player_id">
               {{ player.full_name }}
             </option>
           </select>
-          <button 
-            class="add-player-btn"
-            @click="addPlayer"
-            :disabled="!selectedPlayerId || isLoading"
-          >
+          <button class="add-player-btn" @click="addPlayer" :disabled="!selectedPlayerId || isLoading">
             添加球员
           </button>
         </div>
       </div>
-      
+
       <!-- 已添加的球员列表 -->
       <div class="selected-players" v-if="comparisonPlayers.length > 0">
         <h3>已添加的球员：</h3>
         <div class="players-list">
-          <div 
-            v-for="player in comparisonPlayers" 
-            :key="player.player_id"
-            class="player-item"
-          >
-            <img 
-              :src="`/player_avatars/${player.player_id}.png`" 
-              :alt="player.full_name"
-              class="player-avatar-small"
-              onerror="this.src='https://via.placeholder.com/40'"
-            >
+          <div v-for="player in comparisonPlayers" :key="player.player_id" class="player-item">
+            <img :src="`/player_avatars/${player.player_id}.png`" :alt="player.full_name" class="player-avatar-small"
+              onerror="this.src='https://via.placeholder.com/40'">
             <span class="player-name">{{ player.full_name }}</span>
             <span class="player-team">{{ translateTeam(player.team_name) }}</span>
-            <button 
-              class="remove-player-btn"
-              @click="removePlayer(player.player_id)"
-              :disabled="isLoading"
-            >
+            <button class="remove-player-btn" @click="removePlayer(player.player_id)" :disabled="isLoading">
               删除
             </button>
           </div>
         </div>
       </div>
     </div>
-    
+
     <!-- 图表区域 -->
     <div class="chart-section" v-if="comparisonPlayers.length > 0">
       <h3>球员表现比较</h3>
@@ -88,7 +55,7 @@
         <canvas ref="comparisonChart"></canvas>
       </div>
     </div>
-    
+
     <!-- 空状态提示 -->
     <div class="empty-state" v-if="comparisonPlayers.length === 0">
       <p>请添加球员以进行比较</p>
@@ -154,7 +121,7 @@ const loadPlayers = async (teamId) => {
     players.value = []
     return
   }
-  
+
   try {
     isLoadingPlayers.value = true
     console.log('开始加载球队球员列表，teamId:', teamId)
@@ -226,16 +193,16 @@ const handleTeamChange = () => {
 // 添加球员到比较列表
 const addPlayer = async () => {
   if (!selectedPlayerId.value) return
-  
+
   try {
     isLoading.value = true
-    
+
     // 检查球员是否已经在比较列表中
     if (comparisonPlayers.value.some(p => p.player_id === selectedPlayerId.value)) {
       alert('该球员已经在比较列表中')
       return
     }
-    
+
     // 获取球员详细信息
     const playerInfo = players.value.find(p => p.player_id === selectedPlayerId.value)
     if (playerInfo) {
@@ -266,7 +233,7 @@ const loadPlayerData = async (playerId) => {
     }
     const data = await response.json()
     const gameStats = data.game_stats || []
-    
+
     // 处理数据为每日一格的格式
     comparisonData.value[playerId] = processDailyGameData(gameStats)
   } catch (error) {
@@ -281,38 +248,38 @@ const processDailyGameData = (gameStats) => {
   if (!gameStats || gameStats.length === 0) {
     return { dates: [], ratings: [] }
   }
-  
+
   // 找出日期范围
   const gameDates = gameStats.map(game => new Date(game.game_date))
   const minDate = new Date(Math.min(...gameDates))
   const maxDate = new Date(Math.max(...gameDates))
-  
+
   // 创建日期映射
   const dateMap = {}
   gameStats.forEach(game => {
     dateMap[game.game_date] = game.rating
   })
-  
+
   // 生成完整的日期范围
   const dates = []
   const ratings = []
   const currentDate = new Date(minDate)
-  
+
   while (currentDate <= maxDate) {
     const dateStr = currentDate.toISOString().split('T')[0]
     const displayDate = currentDate.toLocaleDateString('zh-CN', {
       month: '2-digit',
       day: '2-digit'
     })
-    
+
     dates.push(displayDate)
     // 如果当天有数据则使用数据，否则为null
     ratings.push(dateMap[dateStr] || null)
-    
+
     // 移动到下一天
     currentDate.setDate(currentDate.getDate() + 1)
   }
-  
+
   return { dates, ratings }
 }
 
@@ -321,20 +288,20 @@ const generateMockMatchData = () => {
   const dates = []
   const ratings = []
   const today = new Date()
-  
+
   // 生成过去30天的数据范围
   const startDate = new Date(today)
   startDate.setDate(startDate.getDate() - 29)
-  
+
   const currentDate = new Date(startDate)
-  
+
   while (currentDate <= today) {
     const displayDate = currentDate.toLocaleDateString('zh-CN', {
       month: '2-digit',
       day: '2-digit'
     })
     dates.push(displayDate)
-    
+
     // 随机决定当天是否有比赛（约30%的概率有比赛）
     const hasGame = Math.random() < 0.3
     if (hasGame) {
@@ -344,11 +311,11 @@ const generateMockMatchData = () => {
       // 没有比赛，数据为null
       ratings.push(null)
     }
-    
+
     // 移动到下一天
     currentDate.setDate(currentDate.getDate() + 1)
   }
-  
+
   return { dates, ratings }
 }
 
@@ -356,14 +323,14 @@ const generateMockMatchData = () => {
 const getPlayerColor = (index) => {
   const colors = [
     '#667eea', // 蓝色
+    '#fe53bb', // 玫红色
+    '#43e97b', // 绿色
     '#764ba2', // 紫色
     '#f093fb', // 粉色
-    '#4facfe', // 天蓝色
-    '#43e97b', // 绿色
-    '#fa709a', // 红色
-    '#fee140', // 黄色
     '#00f2fe', // 青色
-    '#fe53bb', // 玫红色
+    '#fa709a', // 红色
+    '#4facfe', // 天蓝色
+    '#fee140', // 黄色
     '#00f5d4'  // 薄荷绿
   ]
   return colors[index % colors.length]
@@ -373,10 +340,10 @@ const getPlayerColor = (index) => {
 const calculatePlayerAverage = (playerId) => {
   const playerData = comparisonData.value[playerId]
   if (!playerData || !playerData.ratings) return 0
-  
+
   const validRatings = playerData.ratings.filter(rating => rating !== null && !isNaN(rating))
   if (validRatings.length === 0) return 0
-  
+
   const sum = validRatings.reduce((acc, rating) => acc + parseFloat(rating), 0)
   return sum / validRatings.length
 }
@@ -384,25 +351,25 @@ const calculatePlayerAverage = (playerId) => {
 // 更新图表
 const updateChart = async () => {
   if (!comparisonChart.value || comparisonPlayers.value.length === 0) return
-  
+
   try {
     // 清除之前的图表实例
     if (chartInstance.value) {
       chartInstance.value.destroy()
     }
-    
+
     // 动态导入Chart.js及其组件
     const chartModule = await import('chart.js')
     const { Chart, LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend } = chartModule
-    
+
     // 注册必要的组件
     Chart.register(LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend)
-    
+
     // 获取所有日期标签（使用第一个球员的日期作为基准）
-    const labels = comparisonPlayers.value.length > 0 
+    const labels = comparisonPlayers.value.length > 0
       ? comparisonData.value[comparisonPlayers.value[0].player_id]?.dates || []
       : []
-    
+
     // 准备图表数据
     const datasets = comparisonPlayers.value.map((player, index) => {
       const playerData = comparisonData.value[player.player_id]
@@ -416,7 +383,7 @@ const updateChart = async () => {
         spanGaps: true
       }
     })
-    
+
     // 为每个球员添加平均值水平线
     comparisonPlayers.value.forEach((player, index) => {
       const average = calculatePlayerAverage(player.player_id)
@@ -434,7 +401,7 @@ const updateChart = async () => {
         })
       }
     })
-    
+
     // 计算y轴上下限 - 基于所有球员的数据点
     const allRatings = []
     comparisonPlayers.value.forEach(player => {
@@ -447,17 +414,17 @@ const updateChart = async () => {
         })
       }
     })
-    
+
     let yMin = -5
     let yMax = 30
-    
+
     if (allRatings.length > 0) {
       const minValue = Math.min(...allRatings)
       const maxValue = Math.max(...allRatings)
       yMin = minValue - 3
       yMax = maxValue + 3
     }
-    
+
     // 创建图表
     chartInstance.value = new Chart(comparisonChart.value, {
       type: 'line',
@@ -549,19 +516,22 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
-.team-selector, .player-selector {
+.team-selector,
+.player-selector {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.team-selector label, .player-selector label {
+.team-selector label,
+.player-selector label {
   font-weight: 600;
   color: #666;
   white-space: nowrap;
 }
 
-.team-selector select, .player-selector select {
+.team-selector select,
+.player-selector select {
   padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -702,23 +672,25 @@ select:disabled {
     flex-direction: column;
     align-items: flex-start;
   }
-  
-  .team-selector, .player-selector {
+
+  .team-selector,
+  .player-selector {
     width: 100%;
   }
-  
-  .team-selector select, .player-selector select {
+
+  .team-selector select,
+  .player-selector select {
     flex: 1;
     min-width: unset;
   }
-  
+
   .player-item {
     flex-direction: column;
     align-items: center;
     text-align: center;
     min-width: 150px;
   }
-  
+
   .chart-container {
     height: 400px;
   }
