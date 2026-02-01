@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from api.rule import SALARY_CAP
 from flask import Blueprint, jsonify, request
@@ -113,21 +113,29 @@ def create_lineup():
 @lineup_bp.route("/by-date", methods=["GET"])
 @login_required
 def get_lineups_by_date():
-    try:
+    def can_view_lineup(lineup_user_id, current_user_id, lineup_date):
+        if lineup_user_id == current_user_id:
+            return True
+        now = datetime.utcnow() + timedelta(hours=8)
+        today = now.date()
+        if lineup_date < today:
+            return True
+        elif lineup_date == today and now.hour >= 7:
+            return True
+        return False
 
+    try:
         date_str = request.args.get("date")
         if not date_str:
             return jsonify({"error": "日期参数不能为空"}), 400
-
         try:
             date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except ValueError:
             return jsonify({"error": "日期格式不正确，请使用 YYYY-MM-DD 格式"}), 400
-
         lineups = (
             Lineup.query.filter_by(date=date).order_by(Lineup.created_at.desc()).all()
         )
-
+        current_user_id = get_current_user_id()
         result = []
         for lineup in lineups:
             lineup_dict = lineup.to_dict()
@@ -136,9 +144,12 @@ def get_lineups_by_date():
                 lineup_dict["username"] = user.username
             else:
                 lineup_dict["username"] = "未知用户"
+            if can_view_lineup(lineup.user_id, current_user_id, lineup.date):
+                lineup_dict["can_view"] = True
+            else:
+                lineup_dict["can_view"] = False
+                lineup_dict["players"] = []
             result.append(lineup_dict)
-
         return jsonify({"lineups": result}), 200
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
