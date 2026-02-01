@@ -103,6 +103,6 @@ if __name__ == "__main__":
     csv_file_path = os.path.join(
         os.path.dirname(os.path.dirname(__file__)),
         "player_stats_data",
-        "nba_player_stats_2026_01_30.csv",
+        "nba_player_stats_2026_01_31.csv",
     )
     import_csv_to_db(csv_file_path)
