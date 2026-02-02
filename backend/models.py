@@ -48,9 +48,7 @@ class Lineup(db.Model):
     name = db.Column(db.String(255), nullable=False)
     date = db.Column(db.Date, nullable=False)
     total_salary = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(
-        db.DateTime, default=lambda: datetime.utcnow()
-    )  # TODO: 考虑时区问题, 现在是伦敦时间
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
 
     # 关系
     players = db.relationship(

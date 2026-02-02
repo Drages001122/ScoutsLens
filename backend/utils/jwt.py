@@ -4,14 +4,13 @@ from datetime import datetime, timedelta
 import jwt
 from flask import request
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key")  # TODO: 管理密钥
+SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key")
 
 
 def generate_token(user_id):
     payload = {
         "user_id": user_id,
-        "exp": datetime.utcnow()
-        + timedelta(days=7),  # 令牌有效期7天 # TODO: 管理有效期
+        "exp": datetime.utcnow() + timedelta(days=7),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
