@@ -5,3 +5,4 @@ Flask-SQLAlchemy==2.5.1
 SQLAlchemy==1.4.23
 Flask-JWT-Extended==4.4.3
 python-dotenv==1.2.1
+pulp==3.3.0
