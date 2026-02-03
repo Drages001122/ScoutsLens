@@ -88,7 +88,24 @@ const benchLineup = ref([])
 
 // 发布阵容相关状态
 const showPublishModal = ref(false)
-const selectedDate = ref(new Date().toISOString().split('T')[0])
+
+// 根据当前时间设置默认日期
+const getDefaultDate = () => {
+  const now = new Date()
+  const hours = now.getHours()
+  
+  // 如果当前时间早于12点，使用当天；否则使用明天
+  if (hours < 12) {
+    return now.toISOString().split('T')[0]
+  } else {
+    // 设置为明天
+    const tomorrow = new Date(now)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    return tomorrow.toISOString().split('T')[0]
+  }
+}
+
+const selectedDate = ref(getDefaultDate())
 const minDate = ref(new Date().toISOString().split('T')[0])
 const showSuccessMessage = ref(false)
 const showErrorMessage = ref(false)

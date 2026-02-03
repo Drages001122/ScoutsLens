@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from api.rule import SALARY_CAP
 from flask import Blueprint, jsonify, request
-from models import Lineup, LineupPlayer, User, db
+from models import Lineup, LineupPlayer, User, PlayerInformation, db
 from utils.best_lineup import get_best_lineup
 from utils.jwt import get_current_user_id
 from utils.permission import login_required
@@ -158,26 +158,23 @@ def get_lineups_by_date():
 
 @lineup_bp.route("/best", methods=["GET"])
 @login_required
-def get_today_best_lineup():
+def get_best_lineup_endpoint():
     try:
         now = datetime.utcnow() + timedelta(hours=8)
-        today = now.date().strftime("%Y-%m-%d")
-
-        best_lineup = get_best_lineup(today)
-
+        target_date = request.args.get("date", now.date().strftime("%Y-%m-%d"))
+        best_lineup = get_best_lineup(target_date)
         if not best_lineup:
             return (
                 jsonify(
-                    {"error": "无法计算今日最佳阵容，可能是因为今日没有比赛或数据不足"}
+                    {"error": f"无法计算{target_date}最佳阵容，可能是因为当日没有比赛或数据不足"}
                 ),
                 404,
             )
-
         formatted_lineup = {
             "id": 0,  # 虚拟ID
             "user_id": 0,  # 系统生成
-            "name": "今日最佳阵容",
-            "date": today,
+            "name": f"{target_date}最佳阵容",
+            "date": target_date,
             "total_salary": best_lineup["total_salary"],
             "created_at": now.isoformat(),
             "players": [],
@@ -185,13 +182,15 @@ def get_today_best_lineup():
         }
 
         for slot, player in best_lineup["starters"].items():
+            player_info = PlayerInformation.query.filter_by(player_id=player["id"]).first()
+            team_name = player_info.team_name if player_info else ""
             formatted_lineup["players"].append(
                 {
                     "id": 0,  # 虚拟ID
                     "lineup_id": 0,  # 虚拟阵容ID
                     "player_id": player["id"],
                     "full_name": player["name"],
-                    "team_name": "",  # 暂时为空，后续可从数据库获取
+                    "team_name": team_name,
                     "position": player["position"],
                     "salary": player["salary"],
                     "slot": slot,
@@ -201,13 +200,15 @@ def get_today_best_lineup():
             )
 
         for player in best_lineup["bench"]:
+            player_info = PlayerInformation.query.filter_by(player_id=player["id"]).first()
+            team_name = player_info.team_name if player_info else ""
             formatted_lineup["players"].append(
                 {
                     "id": 0,  # 虚拟ID
                     "lineup_id": 0,  # 虚拟阵容ID
                     "player_id": player["id"],
                     "full_name": player["name"],
-                    "team_name": "",  # 暂时为空，后续可从数据库获取
+                    "team_name": team_name,
                     "position": player["position"],
                     "salary": player["salary"],
                     "slot": None,

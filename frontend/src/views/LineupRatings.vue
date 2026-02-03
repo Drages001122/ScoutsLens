@@ -396,7 +396,7 @@ export default {
   },
   mounted() {
     this.fetchLineups()
-    this.fetchBestLineup()
+    this.fetchBestLineup(this.selectedDate)
   },
   methods: {
     translateTeam,
@@ -419,6 +419,8 @@ export default {
       .then(data => {
         this.lineups = data.lineups
         this.loading = false
+        // 获取最佳阵容
+        this.fetchBestLineup(this.selectedDate)
         // 获取球员统计数据用于排序
         this.fetchPlayerStats()
       })
@@ -520,19 +522,19 @@ export default {
       this.showPlayerProfile = false;
       this.selectedPlayer = null;
     },
-    // 获取今日最佳阵容
-    fetchBestLineup() {
+    // 获取最佳阵容
+    fetchBestLineup(date) {
       this.bestLineupLoading = true;
       this.bestLineupError = null;
       
-      fetch(`${apiConfig.BASE_URL}/api/lineup/best`, {
+      fetch(`${apiConfig.BASE_URL}/api/lineup/best?date=${date}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       })
       .then(response => {
         if (!response.ok) {
-          throw new Error('获取今日最佳阵容失败');
+          throw new Error('获取最佳阵容失败');
         }
         return response.json();
       })
