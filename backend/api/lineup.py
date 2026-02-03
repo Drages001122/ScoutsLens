@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from api.rule import SALARY_CAP
 from flask import Blueprint, jsonify, request
 from models import Lineup, LineupPlayer, User, db
+from utils.best_lineup import get_best_lineup
 from utils.jwt import get_current_user_id
 from utils.permission import login_required
 from utils.rule import PlayerCountRule, SalaryRule
@@ -151,5 +152,75 @@ def get_lineups_by_date():
                 lineup_dict["players"] = []
             result.append(lineup_dict)
         return jsonify({"lineups": result}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@lineup_bp.route("/best", methods=["GET"])
+@login_required
+def get_today_best_lineup():
+    try:
+        now = datetime.utcnow() + timedelta(hours=8)
+        today = now.date().strftime("%Y-%m-%d")
+
+        best_lineup = get_best_lineup(today)
+
+        if not best_lineup:
+            return (
+                jsonify(
+                    {"error": "无法计算今日最佳阵容，可能是因为今日没有比赛或数据不足"}
+                ),
+                404,
+            )
+
+        formatted_lineup = {
+            "id": 0,  # 虚拟ID
+            "user_id": 0,  # 系统生成
+            "name": "今日最佳阵容",
+            "date": today,
+            "total_salary": best_lineup["total_salary"],
+            "created_at": now.isoformat(),
+            "players": [],
+            "total_rating": best_lineup["total_rating"],
+        }
+
+        for slot, player in best_lineup["starters"].items():
+            formatted_lineup["players"].append(
+                {
+                    "id": 0,  # 虚拟ID
+                    "lineup_id": 0,  # 虚拟阵容ID
+                    "player_id": player["id"],
+                    "full_name": player["name"],
+                    "team_name": "",  # 暂时为空，后续可从数据库获取
+                    "position": player["position"],
+                    "salary": player["salary"],
+                    "slot": slot,
+                    "is_starting": True,
+                    "rating": player["rating"],
+                }
+            )
+
+        for player in best_lineup["bench"]:
+            formatted_lineup["players"].append(
+                {
+                    "id": 0,  # 虚拟ID
+                    "lineup_id": 0,  # 虚拟阵容ID
+                    "player_id": player["id"],
+                    "full_name": player["name"],
+                    "team_name": "",  # 暂时为空，后续可从数据库获取
+                    "position": player["position"],
+                    "salary": player["salary"],
+                    "slot": None,
+                    "is_starting": False,
+                    "rating": player["rating"],
+                }
+            )
+
+        return (
+            jsonify(
+                {"message": "获取今日最佳阵容成功", "best_lineup": formatted_lineup}
+            ),
+            200,
+        )
     except Exception as e:
         return jsonify({"error": str(e)}), 500

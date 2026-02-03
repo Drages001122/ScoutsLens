@@ -13,6 +13,158 @@
       >
     </div>
     
+    <!-- 今日最佳阵容 -->
+    <div class="best-lineup-section">
+      <h3>今日最佳阵容</h3>
+      <div v-if="bestLineupLoading" class="loading">加载中...</div>
+      <div v-else-if="bestLineupError" class="error">{{ bestLineupError }}</div>
+      <div v-else-if="bestLineup" class="best-lineup-content">
+        <div class="best-lineup-header">
+          <span class="total-rating">总评分：{{ bestLineup.total_rating.toFixed(1) }}</span>
+          <span class="total-salary">总薪资：{{ bestLineup.total_salary.toLocaleString() }}</span>
+        </div>
+        
+        <!-- 首发球员 -->
+        <div class="players-section">
+          <h4>首发球员</h4>
+          <div class="stats-container">
+            <table class="players-table">
+              <thead>
+                <tr>
+                  <th>头像</th>
+                  <th>球员</th>
+                  <th>球队</th>
+                  <th>位置</th>
+                  <th>薪资</th>
+                  <th>槽位</th>
+                  <th>评分</th>
+                  <th>上场时间</th>
+                  <th>得分</th>
+                  <th>三分</th>
+                  <th>两分</th>
+                  <th>罚球</th>
+                  <th>进攻篮板</th>
+                  <th>防守篮板</th>
+                  <th>助攻</th>
+                  <th>抢断</th>
+                  <th>盖帽</th>
+                  <th>失误</th>
+                  <th>犯规</th>
+                  <th>球队胜负</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="player in bestLineup.players.filter(p => p.is_starting)" :key="player.player_id">
+                  <td class="player-avatar">
+                    <img 
+                      :src="`/player_avatars/${player.player_id}.png`" 
+                      :alt="player.full_name"
+                      @error="handleImageError"
+                      @click="openPlayerProfile(player)"
+                      style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                      @mouseover="$event.target.style.transform = 'scale(1.1)'; $event.target.style.boxShadow = '0 0 10px rgba(102, 126, 234, 0.5)'"
+                      @mouseout="$event.target.style.transform = 'scale(1)'; $event.target.style.boxShadow = 'none'"
+                    >
+                  </td>
+                  <td class="player-name">{{ player.full_name }}</td>
+                  <td>{{ translateTeam(player.team_name) }}</td>
+                  <td>{{ translatePosition(player.position) }}</td>
+                  <td>${{ player.salary.toLocaleString() }}</td>
+                  <td class="player-slot">{{ player.slot }}</td>
+                  <td class="score">{{ player.rating ? player.rating.toFixed(1) : '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.minutes ? this.formatMinutes(this.playerStats[player.player_id].minutes) : '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.points || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.three_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].three_pointers_made, this.playerStats[player.player_id].three_pointers_attempted) : '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.two_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].two_pointers_made, this.playerStats[player.player_id].two_pointers_attempted) : '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.free_throws_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].free_throws_made, this.playerStats[player.player_id].free_throws_attempted) : '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.offensive_rebounds || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.defensive_rebounds || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.assists || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.steals || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.blocks || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.turnovers || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.personal_fouls || '0' }}</td>
+                  <td :class="this.playerStats[player.player_id]?.team_won !== undefined ? (this.playerStats[player.player_id].team_won ? 'won' : 'lost') : ''">
+                    {{ this.playerStats[player.player_id]?.team_won !== undefined ? (this.playerStats[player.player_id].team_won ? '胜' : '负') : '0' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- 替补球员 -->
+        <div class="players-section">
+          <h4>替补球员</h4>
+          <div class="stats-container">
+            <table class="players-table">
+              <thead>
+                <tr>
+                  <th>头像</th>
+                  <th>球员</th>
+                  <th>球队</th>
+                  <th>位置</th>
+                  <th>薪资</th>
+                  <th>评分</th>
+                  <th>上场时间</th>
+                  <th>得分</th>
+                  <th>三分</th>
+                  <th>两分</th>
+                  <th>罚球</th>
+                  <th>进攻篮板</th>
+                  <th>防守篮板</th>
+                  <th>助攻</th>
+                  <th>抢断</th>
+                  <th>盖帽</th>
+                  <th>失误</th>
+                  <th>犯规</th>
+                  <th>球队胜负</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="player in bestLineup.players.filter(p => !p.is_starting)" :key="player.player_id">
+                  <td class="player-avatar">
+                    <img 
+                      :src="`/player_avatars/${player.player_id}.png`" 
+                      :alt="player.full_name"
+                      @error="handleImageError"
+                      @click="openPlayerProfile(player)"
+                      style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+                      @mouseover="$event.target.style.transform = 'scale(1.1)'; $event.target.style.boxShadow = '0 0 10px rgba(102, 126, 234, 0.5)'"
+                      @mouseout="$event.target.style.transform = 'scale(1)'; $event.target.style.boxShadow = 'none'"
+                    >
+                  </td>
+                  <td class="player-name">{{ player.full_name }}</td>
+                  <td>{{ translateTeam(player.team_name) }}</td>
+                  <td>{{ translatePosition(player.position) }}</td>
+                  <td>${{ player.salary.toLocaleString() }}</td>
+                  <td class="score">{{ player.rating ? player.rating.toFixed(1) : '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.minutes ? this.formatMinutes(this.playerStats[player.player_id].minutes) : '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.points || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.three_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].three_pointers_made, this.playerStats[player.player_id].three_pointers_attempted) : '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.two_pointers_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].two_pointers_made, this.playerStats[player.player_id].two_pointers_attempted) : '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.free_throws_made !== undefined ? this.formatShootingStats(this.playerStats[player.player_id].free_throws_made, this.playerStats[player.player_id].free_throws_attempted) : '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.offensive_rebounds || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.defensive_rebounds || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.assists || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.steals || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.blocks || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.turnovers || '0' }}</td>
+                  <td>{{ this.playerStats[player.player_id]?.personal_fouls || '0' }}</td>
+                  <td :class="this.playerStats[player.player_id]?.team_won !== undefined ? (this.playerStats[player.player_id].team_won ? 'won' : 'lost') : ''">
+                    {{ this.playerStats[player.player_id]?.team_won !== undefined ? (this.playerStats[player.player_id].team_won ? '胜' : '负') : '0' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="!bestLineupLoading && !bestLineupError" class="no-best-lineup">
+        <p>无法获取今日最佳阵容，可能是因为今日没有比赛或数据不足</p>
+      </div>
+    </div>
+    
     <!-- 加载状态 -->
     <div v-if="loading" class="loading">加载中...</div>
     
@@ -228,6 +380,10 @@ export default {
       error: null,
       expandedLineupId: null,
       playerStats: {}, // 存储球员统计数据，格式：{playerId: stats}
+      // 今日最佳阵容相关状态
+      bestLineup: null,
+      bestLineupLoading: false,
+      bestLineupError: null,
       // 球员个人介绍相关状态
       showPlayerProfile: false,
       selectedPlayer: null
@@ -240,6 +396,7 @@ export default {
   },
   mounted() {
     this.fetchLineups()
+    this.fetchBestLineup()
   },
   methods: {
     translateTeam,
@@ -362,6 +519,33 @@ export default {
     closePlayerProfile() {
       this.showPlayerProfile = false;
       this.selectedPlayer = null;
+    },
+    // 获取今日最佳阵容
+    fetchBestLineup() {
+      this.bestLineupLoading = true;
+      this.bestLineupError = null;
+      
+      fetch(`${apiConfig.BASE_URL}/api/lineup/best`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('获取今日最佳阵容失败');
+        }
+        return response.json();
+      })
+      .then(data => {
+        this.bestLineup = data.best_lineup;
+        this.bestLineupLoading = false;
+        // 获取球员统计数据
+        this.fetchPlayerStats();
+      })
+      .catch(error => {
+        this.bestLineupError = error.message;
+        this.bestLineupLoading = false;
+      });
     }
   },
   components: {
@@ -416,6 +600,56 @@ h2 {
 }
 
 .no-lineups {
+  color: #666;
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+/* 今日最佳阵容 */
+.best-lineup-section {
+  margin: 30px 0;
+  padding: 20px;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.best-lineup-section h3 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 18px;
+  border-bottom: 2px solid #2196f3;
+  padding-bottom: 10px;
+}
+
+.best-lineup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+}
+
+.best-lineup-header .total-rating {
+  font-weight: bold;
+  color: #ff9800;
+  font-size: 16px;
+}
+
+.best-lineup-header .total-salary {
+  font-weight: bold;
+  color: #2196f3;
+  font-size: 16px;
+}
+
+.no-best-lineup {
+  text-align: center;
+  padding: 40px;
+  margin: 20px 0;
   color: #666;
   background-color: #f5f5f5;
   border: 1px solid #e0e0e0;
