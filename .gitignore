@@ -42,9 +42,10 @@ htmlcov/
 .dmypy.json
 dmypy.json
 *.log
-database/scoutslens.db
-.trae/
+database/
+ai/
+player_stats_data/
+script/
 skill-script/
 tmp/
-ai/
 .trae/
