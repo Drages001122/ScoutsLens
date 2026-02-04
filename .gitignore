@@ -43,3 +43,7 @@ htmlcov/
 dmypy.json
 *.log
 database/scoutslens.db
+.trae/
+skill-script/
+tmp/
+ai/
