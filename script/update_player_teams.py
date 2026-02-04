@@ -60,9 +60,31 @@ if __name__ == "__main__":
     # 示例：批量填写player_id和team_name
     # 格式：[(player_id1, team_name1), (player_id2, team_name2), ...]
     player_team_pairs = [
-        (1641801, "Cavaliers"),
-        (1641871, "Hawks"),
-        (1630249, "Trail Blazers"),
+        # 灰熊队球员去往爵士
+        (1628991, "Jazz"),      # Jaren Jackson Jr. 杰克逊
+        (1629723, "Jazz"),      # John Konchar 康查尔
+        (1629111, "Jazz"),      # Jock Landale 兰戴尔
+        (1631246, "Jazz"),      # Vince Williams Jr. 威廉姆斯
+        # 爵士队球员去往灰熊
+        (1642383, "Grizzlies"),  # Walter Clayton Jr. 克莱顿
+        (1641707, "Grizzlies"),  # Taylor Hendricks 亨德里克斯
+        (1627777, "Grizzlies"),  # Georges Niang 尼昂
+        (203937, "Grizzlies"),   # Kyle Anderson 安德森
+        # 活塞队球员去往公牛
+        (1631093, "Bulls"),      # Jaden Ivey 艾维
+        # 森林狼队球员去往公牛
+        (201144, "Bulls"),       # Mike Conley 康利
+        # 公牛队球员去往活塞
+        (1628989, "Pistons"),    # Kevin Huerter 许尔特
+        (203967, "Pistons"),     # Dario Šarić 萨里奇
+        # 公牛队球员去往凯尔特人
+        (202696, "Celtics"),     # Nikola Vučević 伍切维奇
+        # 凯尔特人队球员去往公牛
+        (1629014, "Bulls"),      # Anfernee Simons 西门斯
+        # 快船队球员去往骑士
+        (201935, "Cavaliers"),   # James Harden 哈登
+        # 骑士队球员去往快船
+        (1629636, "Clippers"),   # Darius Garland 加兰
     ]
 
     if not player_team_pairs:
