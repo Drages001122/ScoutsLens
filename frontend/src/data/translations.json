@@ -1,0 +1,43 @@
+{
+  "teams": {
+    "76ers": "76人",
+    "Bucks": "雄鹿",
+    "Bulls": "公牛",
+    "Cavaliers": "骑士",
+    "Celtics": "凯尔特人",
+    "Clippers": "快船",
+    "Grizzlies": "灰熊",
+    "Hawks": "老鹰",
+    "Heat": "热火",
+    "Hornets": "黄蜂",
+    "Jazz": "爵士",
+    "Kings": "国王",
+    "Knicks": "尼克斯",
+    "Lakers": "湖人",
+    "Magic": "魔术",
+    "Mavericks": "独行侠",
+    "Nets": "篮网",
+    "Nuggets": "掘金",
+    "Pacers": "步行者",
+    "Pelicans": "鹈鹕",
+    "Pistons": "活塞",
+    "Raptors": "猛龙",
+    "Rockets": "火箭",
+    "Spurs": "马刺",
+    "Suns": "太阳",
+    "Thunder": "雷霆",
+    "Timberwolves": "森林狼",
+    "Trail Blazers": "开拓者",
+    "Warriors": "勇士",
+    "Wizards": "奇才"
+  },
+  "positions": {
+    "Center": "中锋",
+    "Center-Forward": "中锋-前锋",
+    "Forward": "前锋",
+    "Forward-Center": "前锋-中锋",
+    "Forward-Guard": "前锋-后卫",
+    "Guard": "后卫",
+    "Guard-Forward": "后卫-前锋"
+  }
+}
