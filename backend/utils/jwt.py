@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 import jwt
 from flask import request
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "your-secret-key")
+SECRET_KEY = os.environ.get("SECRET_KEY")
+assert SECRET_KEY, "SECRET_KEY environment variable is not set"
 
 
 def generate_token(user_id):

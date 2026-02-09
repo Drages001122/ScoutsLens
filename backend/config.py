@@ -1,5 +1,6 @@
 import os
 
+from dotenv import load_dotenv
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
@@ -24,3 +25,19 @@ def init_db(app: Flask):
         from models import User  # noqa: F401
 
         db.create_all()
+
+
+load_dotenv()
+
+
+def get_current_config():
+    env = os.getenv("FLASK_ENV", "FAILED")
+    assert env in ["dev", "prod"], f"Invalid FLASK_ENV: {env}"
+
+    frontend_domains = os.getenv("FRONTEND_DOMAINS", "").split(",")
+    frontend_domains = [domain.strip() for domain in frontend_domains if domain.strip()]
+
+    return {
+        "env": env,
+        "frontend_domains": frontend_domains,
+    }
