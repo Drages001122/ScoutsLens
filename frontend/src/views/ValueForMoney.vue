@@ -143,6 +143,13 @@ const handleViewTypeChange = async () => {
   if (viewType.value === 'average') {
     const playerData = await fetchPlayerData()
     createChart(playerData)
+  } else if (viewType.value === 'date') {
+    // 设置日期为当天
+    const today = new Date().toISOString().split('T')[0]
+    gameDate.value = today
+    // 获取并显示当天数据
+    const playerData = await fetchPlayerData()
+    createChart(playerData)
   }
 }
 
