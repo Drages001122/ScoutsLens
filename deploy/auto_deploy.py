@@ -322,9 +322,9 @@ class AutoDeployer:
                     relative_path = os.path.relpath(local_file, local_dir)
                     remote_file = os.path.join(remote_dir, relative_path)
                     remote_dir_path = os.path.dirname(remote_file)
-                    
-                    remote_dir_path = remote_dir_path.replace(os.sep, '/')
-                    remote_file = remote_file.replace(os.sep, '/')
+
+                    remote_dir_path = remote_dir_path.replace(os.sep, "/")
+                    remote_file = remote_file.replace(os.sep, "/")
 
                     self.execute_command(
                         f"mkdir -p {remote_dir_path}", show_output=False
