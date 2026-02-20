@@ -50,3 +50,4 @@ skill-script/
 tmp/
 .trae/
 optimization/
+deploy/logs/
