@@ -1,0 +1,9 @@
+{
+  "hostname": "8.153.167.209",
+  "username": "root",
+  "password": "Scoutslens1!",
+  "port": 22,
+  "remote_project_dir": "/var/www/scoutslens",
+  "remote_domain": "8.153.167.209",
+  "secret_key": "lPUY9XcW3ew40RB_J2R-26ttp-A1Uw77QQbv62voP5U"
+}
