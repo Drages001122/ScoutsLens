@@ -74,6 +74,9 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { translateTeam, translatePosition } from '../utils/translation'
+import { Chart, LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend } from 'chart.js/auto'
+
+Chart.register(LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend)
 
 // Props
 const props = defineProps({
@@ -167,13 +170,6 @@ const loadChart = async () => {
     const average = calculatePlayerAverage(matchData.ratings)
     console.log('球员平均值:', average)
     
-    // 动态导入Chart.js及其组件
-    const chartModule = await import('chart.js')
-    const { Chart, LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend } = chartModule
-    
-    // 注册必要的组件
-    Chart.register(LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend)
-    
     // 准备数据集
     const datasets = [{
       label: '比赛评分',
@@ -251,12 +247,6 @@ const loadChart = async () => {
       const matchData = generateMockMatchData()
       const average = calculatePlayerAverage(matchData.ratings)
       console.log('模拟数据平均值:', average)
-      
-      const chartModule = await import('chart.js')
-      const { Chart, LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend } = chartModule
-      
-      // 注册必要的组件
-      Chart.register(LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend)
       
       // 准备数据集
       const datasets = [{

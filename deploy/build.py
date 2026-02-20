@@ -11,7 +11,7 @@ def run_command(command, description):
 
     try:
         result = subprocess.run(
-            command, shell=True, check=True, capture_output=True, text=True
+            command, shell=True, check=True, capture_output=True, text=True, encoding='utf-8'
         )
         print(result.stdout)
         if result.stderr:

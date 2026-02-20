@@ -66,6 +66,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { translateTeam } from '../utils/translation'
+import { Chart, LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend } from 'chart.js/auto'
+
+Chart.register(LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend)
 
 // 响应式数据
 const teams = ref([])
@@ -357,13 +360,6 @@ const updateChart = async () => {
     if (chartInstance.value) {
       chartInstance.value.destroy()
     }
-
-    // 动态导入Chart.js及其组件
-    const chartModule = await import('chart.js')
-    const { Chart, LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend } = chartModule
-
-    // 注册必要的组件
-    Chart.register(LinearScale, CategoryScale, PointElement, LineElement, LineController, Title, Tooltip, Legend)
 
     // 获取所有日期标签（使用第一个球员的日期作为基准）
     const labels = comparisonPlayers.value.length > 0
