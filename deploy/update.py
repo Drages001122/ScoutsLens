@@ -1,6 +1,8 @@
 import json
 import os
 import sys
+import tarfile
+import tempfile
 
 import paramiko
 from scp import SCPClient
@@ -98,25 +100,50 @@ def update_frontend():
     try:
         scp = SCPClient(ssh.get_transport())
 
-        uploaded_count = 0
-        for root, dirs, files in os.walk(local_dist):
-            for file in files:
-                local_file = os.path.join(root, file)
-                relative_path = os.path.relpath(local_file, local_dist)
-                remote_file = os.path.join(remote_dist, relative_path)
-                remote_dir_path = os.path.dirname(remote_file)
+        print("\n正在压缩前端文件以加快上传速度...")
+        with tempfile.NamedTemporaryFile(
+            mode="wb", delete=False, suffix=".tar.gz"
+        ) as f:
+            temp_archive = f.name
 
-                execute_remote_command(
-                    hostname, username, password, f"mkdir -p {remote_dir_path}", port
-                )
-                scp.put(local_file, remote_file)
-                uploaded_count += 1
-                print(f"✓ 上传: {relative_path}")
+        print(f"创建压缩包: {os.path.basename(temp_archive)}")
+
+        with tarfile.open(temp_archive, "w:gz") as tar:
+            for root, dirs, files in os.walk(local_dist):
+                for file in files:
+                    local_file = os.path.join(root, file)
+                    relative_path = os.path.relpath(local_file, local_dist)
+                    tar.add(local_file, arcname=relative_path)
+
+        archive_size = os.path.getsize(temp_archive) / (1024 * 1024)
+        print(f"压缩包大小: {archive_size:.2f} MB")
+
+        print("\n正在上传压缩包到服务器...")
+        scp.put(temp_archive, "/tmp/frontend_dist.tar.gz")
+        print("✓ 压缩包上传完成")
+
+        print("\n正在在服务器上解压文件...")
+        exit_status, _, _ = execute_remote_command(
+            hostname, username, password, f"mkdir -p {remote_dist}", port
+        )
+        exit_status, _, _ = execute_remote_command(
+            hostname,
+            username,
+            password,
+            f"tar -xzf /tmp/frontend_dist.tar.gz -C {remote_dist}",
+            port,
+        )
+        execute_remote_command(
+            hostname, username, password, "rm /tmp/frontend_dist.tar.gz", port
+        )
+
+        os.remove(temp_archive)
+        print("✓ 前端文件解压完成")
 
         scp.close()
         ssh.close()
 
-        print(f"\n✓ 前端更新完成！共上传 {uploaded_count} 个文件")
+        print("\n✓ 前端更新完成！")
         return True
 
     except Exception as e:
@@ -162,27 +189,76 @@ def update_backend():
     try:
         scp = SCPClient(ssh.get_transport())
 
-        uploaded_count = 0
-        for root, dirs, files in os.walk(local_backend):
-            for file in files:
-                local_file = os.path.join(root, file)
-                relative_path = os.path.relpath(local_file, local_backend)
-                remote_file = os.path.join(remote_backend, relative_path)
-                remote_dir_path = os.path.dirname(remote_file)
+        print("\n正在压缩后端文件以加快上传速度...")
+        with tempfile.NamedTemporaryFile(
+            mode="wb", delete=False, suffix=".tar.gz"
+        ) as f:
+            temp_archive = f.name
 
-                execute_remote_command(
-                    hostname, username, password, f"mkdir -p {remote_dir_path}", port
-                )
-                scp.put(local_file, remote_file)
-                uploaded_count += 1
-                print(f"✓ 上传: {relative_path}")
+        print(f"创建压缩包: {os.path.basename(temp_archive)}")
+
+        with tarfile.open(temp_archive, "w:gz") as tar:
+            for root, dirs, files in os.walk(local_backend):
+                for file in files:
+                    local_file = os.path.join(root, file)
+                    relative_path = os.path.relpath(local_file, local_backend)
+                    tar.add(local_file, arcname=relative_path)
+
+        archive_size = os.path.getsize(temp_archive) / (1024 * 1024)
+        print(f"压缩包大小: {archive_size:.2f} MB")
+
+        print("\n正在上传压缩包到服务器...")
+        scp.put(temp_archive, "/tmp/backend_dist.tar.gz")
+        print("✓ 压缩包上传完成")
+
+        print("\n正在在服务器上解压文件...")
+        exit_status, _, _ = execute_remote_command(
+            hostname, username, password, f"mkdir -p {remote_backend}", port
+        )
+        exit_status, _, _ = execute_remote_command(
+            hostname,
+            username,
+            password,
+            f"tar -xzf /tmp/backend_dist.tar.gz -C {remote_backend}",
+            port,
+        )
+        execute_remote_command(
+            hostname, username, password, "rm /tmp/backend_dist.tar.gz", port
+        )
+
+        os.remove(temp_archive)
+        print("✓ 后端文件解压完成")
 
         scp.close()
         ssh.close()
 
-        print(f"\n✓ 后端更新完成！共上传 {uploaded_count} 个文件")
+        print("\n✓ 后端更新完成！")
 
-        print("\n正在重启后端服务...")
+        print("\n正在检查并创建虚拟环境...")
+        exit_status, stdout, stderr = execute_remote_command(
+            hostname,
+            username,
+            password,
+            f"test -d {remote_backend}/venv && echo 'exists' || echo 'not exists'",
+            port,
+        )
+
+        if "not exists" in stdout:
+            print("虚拟环境不存在，正在创建...")
+            exit_status, _, _ = execute_remote_command(
+                hostname,
+                username,
+                password,
+                f"cd {remote_backend} && python3 -m venv venv",
+                port,
+            )
+            if exit_status == 0:
+                print("✓ 虚拟环境创建完成")
+            else:
+                print("✗ 虚拟环境创建失败")
+                return False
+
+        print("\n正在安装依赖...")
         exit_status, _, _ = execute_remote_command(
             hostname,
             username,
@@ -192,9 +268,9 @@ def update_backend():
         )
 
         if exit_status == 0:
-            print("✓ 依赖更新完成")
+            print("✓ 依赖安装完成")
         else:
-            print("⚠ 依赖更新可能存在问题")
+            print("⚠ 依赖安装可能存在问题")
 
         exit_status, _, _ = execute_remote_command(
             hostname, username, password, "systemctl restart scoutslens", port
