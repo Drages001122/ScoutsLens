@@ -2,9 +2,25 @@
   <div class="rankings-page">
     <h2>球员排行榜</h2>
     
+    <!-- 评分模式切换 -->
+    <div class="mode-toggle">
+      <button 
+        :class="['mode-btn', { active: ratingMode === 'average' }]"
+        @click="switchMode('average')"
+      >
+        场均评分
+      </button>
+      <button 
+        :class="['mode-btn', { active: ratingMode === 'single' }]"
+        @click="switchMode('single')"
+      >
+        单日评分
+      </button>
+    </div>
+    
     <!-- 控制面板 -->
     <div class="control-panel">
-      <div class="date-selector">
+      <div v-if="ratingMode === 'single'" class="date-selector">
         <label for="date">选择日期：</label>
         <input 
           type="date" 
@@ -75,7 +91,8 @@
             <th>盖帽</th>
             <th>失误</th>
             <th>犯规</th>
-            <th>球队胜负</th>
+            <th v-if="ratingMode === 'average'">出场次数</th>
+            <th v-if="ratingMode === 'single'">球队胜负</th>
           </tr>
         </thead>
         <tbody>
@@ -98,18 +115,19 @@
             <td>${{ player.salary.toLocaleString() }}</td>
             <td class="score">{{ player.rating.toFixed(1) }}</td>
             <td>{{ formatMinutes(player.minutes) }}</td>
-            <td>{{ player.points }}</td>
+            <td>{{ formatNumber(player.points) }}</td>
             <td>{{ formatShootingStats(player.three_pointers_made, player.three_pointers_attempted) }}</td>
             <td>{{ formatShootingStats(player.two_pointers_made, player.two_pointers_attempted) }}</td>
             <td>{{ formatShootingStats(player.free_throws_made, player.free_throws_attempted) }}</td>
-            <td>{{ player.offensive_rebounds }}</td>
-            <td>{{ player.defensive_rebounds }}</td>
-            <td>{{ player.assists }}</td>
-            <td>{{ player.steals }}</td>
-            <td>{{ player.blocks }}</td>
-            <td>{{ player.turnovers }}</td>
-            <td>{{ player.personal_fouls }}</td>
-            <td :class="player.team_won ? 'won' : 'lost'">
+            <td>{{ formatNumber(player.offensive_rebounds) }}</td>
+            <td>{{ formatNumber(player.defensive_rebounds) }}</td>
+            <td>{{ formatNumber(player.assists) }}</td>
+            <td>{{ formatNumber(player.steals) }}</td>
+            <td>{{ formatNumber(player.blocks) }}</td>
+            <td>{{ formatNumber(player.turnovers) }}</td>
+            <td>{{ formatNumber(player.personal_fouls) }}</td>
+            <td v-if="ratingMode === 'average'">{{ player.games_played }}</td>
+            <td v-if="ratingMode === 'single'" :class="player.team_won ? 'won' : 'lost'">
               {{ player.team_won ? '胜' : '负' }}
             </td>
           </tr>
@@ -154,7 +172,7 @@
     
     <!-- 无数据提示 -->
     <div v-else class="no-data">
-      <p>该日期暂无数据</p>
+      <p>{{ ratingMode === 'single' ? '该日期暂无数据' : '暂无数据' }}</p>
     </div>
     
     <!-- 球员个人介绍弹窗 -->
@@ -176,6 +194,7 @@ import PlayerProfile from '../components/PlayerProfile.vue';
 const apiConfig = API_CONFIG;
 
 // 响应式数据
+const ratingMode = ref('average');
 const selectedDate = ref('');
 const sortOrder = ref('desc');
 const players = ref([]);
@@ -191,24 +210,36 @@ const selectedPlayer = ref(null);
 
 // 初始化
 onMounted(() => {
-  // 设置默认日期为今天
   const today = new Date().toISOString().split('T')[0];
   selectedDate.value = today;
-  // 获取数据
   fetchPlayerStats();
 });
 
+// 切换评分模式
+const switchMode = (mode) => {
+  ratingMode.value = mode;
+  currentPage.value = 1;
+  fetchPlayerStats();
+};
+
 // 获取球员统计数据
 const fetchPlayerStats = async () => {
-  if (!selectedDate.value) return;
-  
   loading.value = true;
   error.value = null;
   
   try {
-    const response = await fetch(
-      `${apiConfig.ENDPOINTS.STATS}/game-stats?game_date=${selectedDate.value}&sort_order=${sortOrder.value}&page=${currentPage.value}&per_page=${perPage.value}`
-    );
+    let url;
+    
+    if (ratingMode.value === 'average') {
+      url = `${apiConfig.ENDPOINTS.STATS}/average-stats?sort_order=${sortOrder.value}&page=${currentPage.value}&per_page=${perPage.value}`;
+    } else {
+      if (!selectedDate.value) {
+        throw new Error('请选择日期');
+      }
+      url = `${apiConfig.ENDPOINTS.STATS}/game-stats?game_date=${selectedDate.value}&sort_order=${sortOrder.value}&page=${currentPage.value}&per_page=${perPage.value}`;
+    }
+    
+    const response = await fetch(url);
     
     if (!response.ok) {
       throw new Error('获取数据失败');
@@ -255,9 +286,20 @@ const formatMinutes = (minutes) => {
   return mins.toString();
 };
 
+// 格式化数字，场均模式保留一位小数，单日模式显示整数
+const formatNumber = (num) => {
+  if (ratingMode.value === 'average') {
+    return num.toFixed(1);
+  }
+  return Math.round(num).toString();
+};
+
 // 格式化投篮统计为 {命中数}/{出手数} 格式
 const formatShootingStats = (made, attempted) => {
-  return `${made}/${attempted}`;
+  if (ratingMode.value === 'average') {
+    return `${made.toFixed(1)}/${attempted.toFixed(1)}`;
+  }
+  return `${Math.round(made)}/${Math.round(attempted)}`;
 };
 
 // 翻页函数
@@ -317,6 +359,33 @@ h2 {
   font-size: 24px;
   margin-bottom: 20px;
   color: #333;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.mode-btn {
+  padding: 10px 24px;
+  border: 2px solid #007bff;
+  background-color: #fff;
+  color: #007bff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.mode-btn:hover {
+  background-color: #e7f1ff;
+}
+
+.mode-btn.active {
+  background-color: #007bff;
+  color: #fff;
 }
 
 .control-panel {
@@ -456,7 +525,6 @@ input[type="date"], select {
   font-weight: 500;
 }
 
-/* 响应式设计 */
 @media (max-width: 1200px) {
   .players-table {
     font-size: 12px;

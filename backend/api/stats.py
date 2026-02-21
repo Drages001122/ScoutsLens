@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import date
 
 from flask import Blueprint, jsonify, request
@@ -6,6 +7,127 @@ from utils.pagination import paginated_response
 from utils.rating import calculate_player_score
 
 stats_bp = Blueprint("stats", __name__)
+
+
+@stats_bp.route("/average-stats", methods=["GET"])
+@paginated_response(items_key="players", default_per_page=10)
+def get_player_average_stats_leaderboard():
+    try:
+        sort_order = request.args.get("sort_order", "desc")
+
+        stats = PlayerGameStats.query.all()
+
+        player_stats = defaultdict(list)
+        for stat in stats:
+            player_stats[stat.personId].append(stat)
+
+        players_with_score = []
+        for player_id, stat_list in player_stats.items():
+            total_games = len(stat_list)
+
+            total_minutes = sum(stat.minutes for stat in stat_list)
+            total_three_pointers_made = sum(
+                stat.threePointersMade for stat in stat_list
+            )
+            total_three_pointers_attempted = sum(
+                stat.threePointersAttempted for stat in stat_list
+            )
+            total_two_pointers_made = sum(stat.twoPointersMade for stat in stat_list)
+            total_two_pointers_attempted = sum(
+                stat.twoPointersAttempted for stat in stat_list
+            )
+            total_free_throws_made = sum(stat.freeThrowsMade for stat in stat_list)
+            total_free_throws_attempted = sum(
+                stat.freeThrowsAttempted for stat in stat_list
+            )
+            total_offensive_rebounds = sum(stat.reboundsOffensive for stat in stat_list)
+            total_defensive_rebounds = sum(stat.reboundsDefensive for stat in stat_list)
+            total_assists = sum(stat.assists for stat in stat_list)
+            total_steals = sum(stat.steals for stat in stat_list)
+            total_blocks = sum(stat.blocks for stat in stat_list)
+            total_turnovers = sum(stat.turnovers for stat in stat_list)
+            total_personal_fouls = sum(stat.foulsPersonal for stat in stat_list)
+            total_points = sum(
+                stat.threePointersMade * 3
+                + stat.twoPointersMade * 2
+                + stat.freeThrowsMade
+                for stat in stat_list
+            )
+
+            avg_minutes = total_minutes / total_games
+            avg_three_pointers_made = total_three_pointers_made / total_games
+            avg_three_pointers_attempted = total_three_pointers_attempted / total_games
+            avg_two_pointers_made = total_two_pointers_made / total_games
+            avg_two_pointers_attempted = total_two_pointers_attempted / total_games
+            avg_free_throws_made = total_free_throws_made / total_games
+            avg_free_throws_attempted = total_free_throws_attempted / total_games
+            avg_offensive_rebounds = total_offensive_rebounds / total_games
+            avg_defensive_rebounds = total_defensive_rebounds / total_games
+            avg_assists = total_assists / total_games
+            avg_steals = total_steals / total_games
+            avg_blocks = total_blocks / total_games
+            avg_turnovers = total_turnovers / total_games
+            avg_personal_fouls = total_personal_fouls / total_games
+            avg_points = total_points / total_games
+
+            avg_score = calculate_player_score(
+                three_pointers=avg_three_pointers_made,
+                two_pointers=avg_two_pointers_made,
+                free_throws=avg_free_throws_made,
+                offensive_rebounds=avg_offensive_rebounds,
+                defensive_rebounds=avg_defensive_rebounds,
+                assists=avg_assists,
+                steals=avg_steals,
+                blocks=avg_blocks,
+                field_goals_attempted=avg_three_pointers_attempted
+                + avg_two_pointers_attempted,
+                field_goals_made=avg_three_pointers_made + avg_two_pointers_made,
+                free_throws_attempted=avg_free_throws_attempted,
+                turnovers=avg_turnovers,
+                personal_fouls=avg_personal_fouls,
+                team_won=True,
+                minutes_played=avg_minutes,
+            )
+
+            player_info = PlayerInformation.query.filter_by(player_id=player_id).first()
+            player_name = (
+                player_info.full_name if player_info else f"Player {player_id}"
+            )
+
+            player_data = {
+                "player_id": player_id,
+                "player_name": player_name,
+                "team_name": stat_list[0].teamName if stat_list else "",
+                "position": player_info.position if player_info else "",
+                "salary": player_info.salary if player_info else 0,
+                "minutes": avg_minutes,
+                "three_pointers_made": avg_three_pointers_made,
+                "three_pointers_attempted": avg_three_pointers_attempted,
+                "two_pointers_made": avg_two_pointers_made,
+                "two_pointers_attempted": avg_two_pointers_attempted,
+                "free_throws_made": avg_free_throws_made,
+                "free_throws_attempted": avg_free_throws_attempted,
+                "offensive_rebounds": avg_offensive_rebounds,
+                "defensive_rebounds": avg_defensive_rebounds,
+                "assists": avg_assists,
+                "steals": avg_steals,
+                "blocks": avg_blocks,
+                "turnovers": avg_turnovers,
+                "personal_fouls": avg_personal_fouls,
+                "team_won": True,
+                "points": avg_points,
+                "rating": avg_score,
+                "games_played": total_games,
+            }
+            players_with_score.append(player_data)
+
+        players_with_score.sort(
+            key=lambda x: x["rating"], reverse=(sort_order == "desc")
+        )
+
+        return {"players": players_with_score}
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @stats_bp.route("/game-stats", methods=["GET"])
@@ -223,11 +345,14 @@ def get_value_for_money():
                 try:
                     game_date_obj = date.fromisoformat(game_date)
                 except ValueError:
-                    return jsonify({"error": "Invalid date format, use YYYY-MM-DD"}), 400
+                    return (
+                        jsonify({"error": "Invalid date format, use YYYY-MM-DD"}),
+                        400,
+                    )
 
                 stat = PlayerGameStats.query.filter(
                     PlayerGameStats.personId == player.player_id,
-                    PlayerGameStats.game_date == game_date_obj
+                    PlayerGameStats.game_date == game_date_obj,
                 ).first()
 
                 if stat:
@@ -281,7 +406,8 @@ def get_value_for_money():
                             blocks=stat.blocks,
                             field_goals_attempted=stat.threePointersAttempted
                             + stat.twoPointersAttempted,
-                            field_goals_made=stat.threePointersMade + stat.twoPointersMade,
+                            field_goals_made=stat.threePointersMade
+                            + stat.twoPointersMade,
                             free_throws_attempted=stat.freeThrowsAttempted,
                             turnovers=stat.turnovers,
                             personal_fouls=stat.foulsPersonal,
@@ -302,7 +428,7 @@ def get_value_for_money():
                             "average_rating": average_rating,
                         }
                     )
-        
+
         if player_data:
             player_data.sort(key=lambda x: x["salary"], reverse=True)
             for i, player in enumerate(player_data):
