@@ -376,65 +376,42 @@ class AutoDeployer:
         )
 
         import tempfile
+        import tarfile
 
         try:
-            self.logger.info("压缩图片目录以加快上传速度", step_id)
+            self.logger.info("压缩前端文件以加快上传速度", step_id)
 
-            images_to_compress = []
-            for root, dirs, files in os.walk(local_dist):
-                for file in files:
-                    if file.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
-                        local_file = os.path.join(root, file)
-                        rel_path = os.path.relpath(local_file, local_dist)
-                        images_to_compress.append((local_file, rel_path))
+            with tempfile.NamedTemporaryFile(
+                mode="wb", delete=False, suffix=".tar.gz"
+            ) as f:
+                temp_archive = f.name
 
-            if images_to_compress:
-                self.logger.info(
-                    f"找到 {len(images_to_compress)} 个图片文件，正在压缩...", step_id
-                )
+            self.logger.info(f"创建压缩包: {os.path.basename(temp_archive)}", step_id)
 
-                with tempfile.NamedTemporaryFile(
-                    mode="wb", delete=False, suffix=".tar.gz"
-                ) as f:
-                    temp_archive = f.name
-
-                import tarfile
-
-                with tarfile.open(temp_archive, "w:gz") as tar:
-                    for local_file, rel_path in images_to_compress:
-                        tar.add(local_file, arcname=rel_path)
-
-                self.logger.info(
-                    f"上传压缩包: {os.path.basename(temp_archive)}", step_id
-                )
-                self.upload_file(temp_archive, "/tmp/frontend_images.tar.gz")
-
-                self.logger.info("在服务器上解压图片", step_id)
-                self.execute_command(
-                    f"tar -xzf /tmp/frontend_images.tar.gz -C {remote_dist}",
-                    show_output=False,
-                )
-                self.execute_command(
-                    "rm /tmp/frontend_images.tar.gz", show_output=False
-                )
-
-                os.remove(temp_archive)
-                self.logger.info("图片文件上传完成", step_id)
-
-            self.logger.info("上传其他前端文件", step_id)
-            for root, dirs, files in os.walk(local_dist):
-                for file in files:
-                    if not file.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
+            with tarfile.open(temp_archive, "w:gz") as tar:
+                for root, dirs, files in os.walk(local_dist):
+                    for file in files:
                         local_file = os.path.join(root, file)
                         relative_path = os.path.relpath(local_file, local_dist)
-                        remote_file = os.path.join(remote_dist, relative_path)
-                        remote_dir_path = os.path.dirname(remote_file)
+                        tar.add(local_file, arcname=relative_path)
 
-                        self.execute_command(
-                            f"mkdir -p {remote_dir_path}", show_output=False
-                        )
-                        self.scp.put(local_file, remote_file)
-                        self.logger.info(f"上传: {relative_path}")
+            archive_size = os.path.getsize(temp_archive) / (1024 * 1024)
+            self.logger.info(f"压缩包大小: {archive_size:.2f} MB", step_id)
+
+            self.logger.info("上传压缩包到服务器", step_id)
+            self.upload_file(temp_archive, "/tmp/frontend_dist.tar.gz")
+
+            self.logger.info("在服务器上解压文件", step_id)
+            self.execute_command(
+                f"tar -xzf /tmp/frontend_dist.tar.gz -C {remote_dist}",
+                show_output=False,
+            )
+            self.execute_command(
+                "rm /tmp/frontend_dist.tar.gz", show_output=False
+            )
+
+            os.remove(temp_archive)
+            self.logger.info("前端文件上传完成", step_id)
 
             self.logger.end_step(step_id, True, "前端文件上传完成")
             return True
@@ -484,8 +461,10 @@ class AutoDeployer:
 
     def update_backend_config(self) -> bool:
         step_id = self.logger.start_step("更新后端配置")
+        public_ip = self.config.get("public_ip", self.hostname)
         env_content = f"""FLASK_ENV=prod
 SECRET_KEY={self.config.get('secret_key', 'your-secret-key-here')}
+FRONTEND_DOMAINS=http://localhost:5173,http://{public_ip}
 """
         env_path = f"{self.remote_project_dir}/backend/.env"
 
@@ -500,13 +479,7 @@ SECRET_KEY={self.config.get('secret_key', 'your-secret-key-here')}
             self.upload_file(temp_env_file, env_path)
             os.remove(temp_env_file)
 
-            self.logger.info("更新数据库路径配置", step_id)
-            commands = [
-                f'sed -i \'s|os.path.dirname(os.path.dirname(__file__)), "database", "scoutslens.db"|os.path.dirname(os.path.dirname(__file__)), "..", "database", "scoutslens.db"|g\' {self.remote_project_dir}/backend/config.py',
-            ]
-            for cmd in commands:
-                self.execute_command(cmd, show_output=False)
-
+            self.logger.info("数据库路径配置保持不变（本地配置已正确）", step_id)
             self.logger.end_step(step_id, True, "后端配置更新完成")
             return True
         except Exception as e:
