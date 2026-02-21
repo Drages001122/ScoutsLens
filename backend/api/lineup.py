@@ -2,12 +2,19 @@ import time
 from datetime import datetime, timedelta
 from typing import Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+
 from api.rule import SALARY_CAP
 from config import get_db
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from models import (ErrorResponse, Lineup, LineupCreate, LineupPlayer,
-                    PlayerInformation, User)
-from sqlalchemy.orm import Session
+from models import (
+    ErrorResponse,
+    Lineup,
+    LineupCreate,
+    LineupPlayer,
+    PlayerInformation,
+    User,
+)
 from utils.best_lineup import get_best_lineup
 from utils.permission import login_required
 from utils.rule import PlayerCountRule, SalaryRule

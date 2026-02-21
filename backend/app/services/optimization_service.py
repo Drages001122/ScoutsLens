@@ -3,12 +3,21 @@ from typing import Dict, List, Optional
 
 import pulp
 
-from config import SessionLocal
-from models import PlayerGameStats, PlayerInformation
-from utils.rating import calculate_player_score
+from app.db.session import SessionLocal
+from app.models import PlayerGameStats, PlayerInformation
+from app.services.stats_service import calculate_player_score
 
 
 def get_player_data(target_date_str: str) -> List[Dict]:
+    """
+    获取指定日期的球员数据
+
+    Args:
+        target_date_str: 目标日期字符串
+
+    Returns:
+        球员数据列表
+    """
     try:
         target_date = date.fromisoformat(target_date_str)
     except ValueError:
@@ -85,6 +94,12 @@ def get_player_data(target_date_str: str) -> List[Dict]:
 
 
 def get_position_map() -> Dict:
+    """
+    获取位置映射表
+
+    Returns:
+        位置映射字典
+    """
     return {
         "Guard": ["PG", "SG"],
         "Guard-Forward": ["SG", "SF"],
@@ -97,6 +112,15 @@ def get_position_map() -> Dict:
 
 
 def solve_roster(players_data: List[Dict]) -> Optional[Dict]:
+    """
+    使用线性规划求解最佳阵容
+
+    Args:
+        players_data: 球员数据列表
+
+    Returns:
+        最佳阵容数据，无解返回None
+    """
     SALARY_CAP = 187895000
     starter_slots = ["PG", "SG", "SF", "PF", "C"]
     position_map = get_position_map()
@@ -187,6 +211,15 @@ def solve_roster(players_data: List[Dict]) -> Optional[Dict]:
 
 
 def get_best_lineup(target_date_str: str) -> Optional[Dict]:
+    """
+    获取指定日期的最佳阵容
+
+    Args:
+        target_date_str: 目标日期字符串
+
+    Returns:
+        最佳阵容数据，无解返回None
+    """
     players_data = get_player_data(target_date_str)
     if not players_data:
         return None

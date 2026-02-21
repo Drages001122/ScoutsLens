@@ -445,7 +445,6 @@ class AutoDeployer:
         commands = [
             f"cd {self.remote_project_dir}/backend && python3 -m venv venv",
             f"cd {self.remote_project_dir}/backend && source venv/bin/activate && pip install -r requirements.txt",
-            f"cd {self.remote_project_dir}/backend && source venv/bin/activate && pip install waitress",
         ]
 
         for cmd in commands:
@@ -462,7 +461,7 @@ class AutoDeployer:
     def update_backend_config(self) -> bool:
         step_id = self.logger.start_step("更新后端配置")
         public_ip = self.config.get("public_ip", self.hostname)
-        env_content = f"""FLASK_ENV=prod
+        env_content = f"""ENV=prod
 SECRET_KEY={self.config.get('secret_key', 'your-secret-key-here')}
 FRONTEND_DOMAINS=http://localhost:5173,http://{public_ip}
 """
@@ -552,7 +551,7 @@ User=root
 WorkingDirectory={self.remote_project_dir}/backend
 Environment="PATH={self.remote_project_dir}/backend/venv/bin"
 Environment="PYTHONPATH={self.remote_project_dir}/backend"
-ExecStart={self.remote_project_dir}/backend/venv/bin/waitress-serve --port=5000 --threads=4 app:app
+ExecStart={self.remote_project_dir}/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 5000 --workers 4
 Restart=always
 
 [Install]
@@ -603,7 +602,7 @@ WantedBy=multi-user.target
                 "前端页面访问",
                 f"curl -s -o /dev/null -w '%{{http_code}}' http://{self.remote_domain}/",
             ),
-            ("API健康检查", "curl -s http://localhost/api/"),
+            ("API健康检查", "curl -s http://localhost:5000/health"),
             ("端口5000监听", "netstat -tlnp | grep :5000 || ss -tlnp | grep :5000"),
         ]
 

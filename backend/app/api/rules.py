@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 
-from models import ErrorResponse, SalaryCapResponse
+from app.schemas import ErrorResponse, SalaryCapResponse
 
 router = APIRouter()
 

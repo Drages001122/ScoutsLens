@@ -1,25 +1,91 @@
 from collections import defaultdict
 from datetime import date
-from typing import Optional
+from typing import Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from app.models import PlayerGameStats, PlayerInformation
 from sqlalchemy.orm import Session
 
-from config import get_db
-from models import ErrorResponse, PlayerGameStats, PlayerInformation
-from utils.pagination import get_pagination_params, paginate
-from utils.rating import calculate_player_score
 
-router = APIRouter()
+def calculate_player_score(
+    three_pointers: int,
+    two_pointers: int,
+    free_throws: int,
+    offensive_rebounds: int,
+    defensive_rebounds: int,
+    assists: int,
+    steals: int,
+    blocks: int,
+    field_goals_attempted: int,
+    field_goals_made: int,
+    free_throws_attempted: int,
+    turnovers: int,
+    personal_fouls: int,
+    team_won: bool,
+    minutes_played: int,
+) -> float:
+    """
+    计算球员评分
+
+    Args:
+        three_pointers: 三分球命中数
+        two_pointers: 两分球命中数
+        free_throws: 罚球命中数
+        offensive_rebounds: 进攻篮板
+        defensive_rebounds: 防守篮板
+        assists: 助攻
+        steals: 抢断
+        blocks: 盖帽
+        field_goals_attempted: 投篮出手数
+        field_goals_made: 投篮命中数
+        free_throws_attempted: 罚球出手数
+        turnovers: 失误
+        personal_fouls: 犯规
+        team_won: 是否赢球
+        minutes_played: 出场时间
+
+    Returns:
+        球员评分
+    """
+    score = (
+        (three_pointers * 1.5)
+        + two_pointers
+        + (free_throws * 0.5)
+        + offensive_rebounds
+        + (defensive_rebounds * 0.7)
+        + assists
+        + (steals * 1.2)
+        + (blocks * 1.2)
+        - ((field_goals_attempted - field_goals_made) * 0.7)
+        - ((free_throws_attempted - free_throws) * 0.4)
+        - (turnovers * 1.2)
+        - (personal_fouls * 0.4)
+    )
+    if minutes_played > 0:
+        if team_won:
+            score += 2
+        else:
+            score -= 2
+    return score
 
 
-@router.get("/average-stats")
-async def get_player_average_stats_leaderboard(
-    sort_order: str = Query("desc", description="排序顺序"),
-    pagination: dict = Depends(get_pagination_params),
-    db: Session = Depends(get_db),
-):
-    try:
+class StatsService:
+    """统计服务"""
+
+    @staticmethod
+    def get_player_average_stats_leaderboard(
+        db: Session,
+        sort_order: str = "desc",
+    ) -> List[Dict]:
+        """
+        获取球员平均数据排行榜
+
+        Args:
+            db: 数据库会话
+            sort_order: 排序顺序
+
+        Returns:
+            球员排行榜列表
+        """
         stats = db.query(PlayerGameStats).all()
 
         player_stats = defaultdict(list)
@@ -131,38 +197,34 @@ async def get_player_average_stats_leaderboard(
         players_with_score.sort(
             key=lambda x: x["rating"], reverse=(sort_order == "desc")
         )
+        return players_with_score
 
-        return paginate(
-            players_with_score, pagination["page"], pagination["per_page"], "players"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
+    @staticmethod
+    def get_player_game_stats(
+        db: Session,
+        game_date: str,
+        sort_order: str = "desc",
+    ) -> Tuple[List[Dict], str]:
+        """
+        获取指定日期的球员比赛数据
 
+        Args:
+            db: 数据库会话
+            game_date: 比赛日期
+            sort_order: 排序顺序
 
-@router.get("/game-stats")
-async def get_player_game_stats(
-    game_date: str = Query(..., description="比赛日期"),
-    sort_order: str = Query("desc", description="排序顺序"),
-    pagination: dict = Depends(get_pagination_params),
-    db: Session = Depends(get_db),
-):
-    try:
-        if not game_date:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="game_date is required",
-            )
+        Returns:
+            (球员数据列表, 日期字符串)
 
+        Raises:
+            ValidationError: 日期格式无效
+        """
         try:
             game_date_obj = date.fromisoformat(game_date)
         except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid date format, use YYYY-MM-DD",
-            )
+            from app.exceptions.base import ValidationError
+
+            raise ValidationError("Invalid date format, use YYYY-MM-DD")
 
         stats = (
             db.query(PlayerGameStats)
@@ -231,28 +293,23 @@ async def get_player_game_stats(
         players_with_score.sort(
             key=lambda x: x["rating"], reverse=(sort_order == "desc")
         )
+        return players_with_score, game_date
 
-        result = paginate(
-            players_with_score, pagination["page"], pagination["per_page"], "players"
-        )
-        result["game_date"] = game_date
-        return result
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
+    @staticmethod
+    def get_player_game_stats_by_id(
+        db: Session,
+        player_id: int,
+    ) -> Tuple[int, List[Dict]]:
+        """
+        获取指定球员的比赛数据
 
+        Args:
+            db: 数据库会话
+            player_id: 球员ID
 
-@router.get(
-    "/player/{player_id}/game-stats",
-    response_model=dict,
-    responses={500: {"model": ErrorResponse}},
-)
-async def get_player_game_stats_by_id(player_id: int, db: Session = Depends(get_db)):
-    try:
+        Returns:
+            (球员ID, 比赛数据列表)
+        """
         stats = (
             db.query(PlayerGameStats)
             .filter(PlayerGameStats.personId == player_id)
@@ -287,31 +344,36 @@ async def get_player_game_stats_by_id(player_id: int, db: Session = Depends(get_
             }
             game_stats.append(game_data)
 
-        return {"player_id": player_id, "game_stats": game_stats}
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
+        return player_id, game_stats
 
+    @staticmethod
+    def get_player_average_stats(
+        db: Session,
+        player_id: int,
+    ) -> Dict:
+        """
+        获取指定球员的平均数据
 
-@router.get(
-    "/player/{player_id}/average-stats",
-    response_model=dict,
-    responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
-)
-async def get_player_average_stats(player_id: int, db: Session = Depends(get_db)):
-    try:
+        Args:
+            db: 数据库会话
+            player_id: 球员ID
+
+        Returns:
+            平均数据字典
+
+        Raises:
+            ResourceNotFound: 球员数据不存在
+        """
         stats = (
             db.query(PlayerGameStats)
             .filter(PlayerGameStats.personId == player_id)
             .all()
         )
         if not stats:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No stats found for this player",
-            )
+            from app.exceptions.base import ResourceNotFound
+
+            raise ResourceNotFound("No stats found for this player")
+
         total_games = len(stats)
 
         total_minutes = sum(stat.minutes for stat in stats)
@@ -371,25 +433,25 @@ async def get_player_average_stats(player_id: int, db: Session = Depends(get_db)
         }
 
         return average_stats
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
 
+    @staticmethod
+    def get_value_for_money(
+        db: Session,
+        game_date: Optional[str] = None,
+    ) -> Tuple[List[Dict], Optional[str]]:
+        """
+        获取性价比球员列表
 
-@router.get(
-    "/value-for-money",
-    response_model=dict,
-    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
-)
-async def get_value_for_money(
-    game_date: Optional[str] = None,
-    db: Session = Depends(get_db),
-):
-    try:
+        Args:
+            db: 数据库会话
+            game_date: 比赛日期
+
+        Returns:
+            (球员列表, 游戏日期)
+
+        Raises:
+            ValidationError: 日期格式无效
+        """
         players = db.query(PlayerInformation).all()
         player_data = []
 
@@ -398,10 +460,9 @@ async def get_value_for_money(
                 try:
                     game_date_obj = date.fromisoformat(game_date)
                 except ValueError:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Invalid date format, use YYYY-MM-DD",
-                    )
+                    from app.exceptions.base import ValidationError
+
+                    raise ValidationError("Invalid date format, use YYYY-MM-DD")
 
                 stat = (
                     db.query(PlayerGameStats)
@@ -497,11 +558,4 @@ async def get_value_for_money(
 
             player_data.sort(key=lambda x: x["salary"])
 
-        return {"players": player_data, "game_date": game_date}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
+        return player_data, game_date

@@ -4,6 +4,7 @@
     
     <!-- 评分模式切换 -->
     <div class="mode-toggle">
+      <div class="mode-slider" :style="{ transform: ratingMode === 'average' ? 'translateX(0)' : 'translateX(calc(100% + 4px))' }"></div>
       <button 
         :class="['mode-btn', { active: ratingMode === 'average' }]"
         @click="switchMode('average')"
@@ -362,30 +363,54 @@ h2 {
 }
 
 .mode-toggle {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+  display: inline-flex;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+  padding: 4px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  position: relative;
+}
+
+.mode-slider {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: calc(50% - 6px);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 12px rgba(102, 126, 234, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 0;
 }
 
 .mode-btn {
-  padding: 10px 24px;
-  border: 2px solid #007bff;
-  background-color: #fff;
-  color: #007bff;
-  border-radius: 6px;
+  position: relative;
+  padding: 12px 32px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .mode-btn:hover {
-  background-color: #e7f1ff;
+  color: #475569;
 }
 
 .mode-btn.active {
-  background-color: #007bff;
-  color: #fff;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .control-panel {
