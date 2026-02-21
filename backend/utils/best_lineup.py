@@ -1,76 +1,89 @@
+from datetime import date
+from typing import Dict, List, Optional
+
 import pulp
-from config import db
+from config import SessionLocal
 from models import PlayerGameStats, PlayerInformation
 from utils.rating import calculate_player_score
 
 
-def get_player_data(date):
+def get_player_data(target_date_str: str) -> List[Dict]:
+    try:
+        target_date = date.fromisoformat(target_date_str)
+    except ValueError:
+        return []
 
-    stats = (
-        db.session.query(
-            PlayerInformation.player_id,
-            PlayerInformation.full_name,
-            PlayerInformation.salary,
-            PlayerInformation.position,
-            PlayerGameStats.threePointersMade,
-            PlayerGameStats.twoPointersMade,
-            PlayerGameStats.freeThrowsMade,
-            PlayerGameStats.reboundsOffensive,
-            PlayerGameStats.reboundsDefensive,
-            PlayerGameStats.assists,
-            PlayerGameStats.steals,
-            PlayerGameStats.blocks,
-            (
-                PlayerGameStats.twoPointersAttempted
-                + PlayerGameStats.threePointersAttempted
-            ).label("field_goals_attempted"),
-            (PlayerGameStats.twoPointersMade + PlayerGameStats.threePointersMade).label(
-                "field_goals_made"
-            ),
-            PlayerGameStats.freeThrowsAttempted,
-            PlayerGameStats.turnovers,
-            PlayerGameStats.foulsPersonal,
-            PlayerGameStats.IS_WINNER,
-            PlayerGameStats.minutes,
-        )
-        .join(PlayerGameStats, PlayerInformation.player_id == PlayerGameStats.personId)
-        .filter(PlayerGameStats.game_date == date)
-        .all()
-    )
-
-    player_data = []
-    for stat in stats:
-        rating = calculate_player_score(
-            three_pointers=stat[4],
-            two_pointers=stat[5],
-            free_throws=stat[6],
-            offensive_rebounds=stat[7],
-            defensive_rebounds=stat[8],
-            assists=stat[9],
-            steals=stat[10],
-            blocks=stat[11],
-            field_goals_attempted=stat[12],
-            field_goals_made=stat[13],
-            free_throws_attempted=stat[14],
-            turnovers=stat[15],
-            personal_fouls=stat[16],
-            team_won=stat[17],
-            minutes_played=stat[18],
-        )
-        player_data.append(
-            {
-                "id": stat[0],
-                "name": stat[1],
-                "salary": stat[2],
-                "position": stat[3],
-                "rating": rating,
-            }
+    db = SessionLocal()
+    try:
+        stats = (
+            db.query(
+                PlayerInformation.player_id,
+                PlayerInformation.full_name,
+                PlayerInformation.salary,
+                PlayerInformation.position,
+                PlayerGameStats.threePointersMade,
+                PlayerGameStats.twoPointersMade,
+                PlayerGameStats.freeThrowsMade,
+                PlayerGameStats.reboundsOffensive,
+                PlayerGameStats.reboundsDefensive,
+                PlayerGameStats.assists,
+                PlayerGameStats.steals,
+                PlayerGameStats.blocks,
+                (
+                    PlayerGameStats.twoPointersAttempted
+                    + PlayerGameStats.threePointersAttempted
+                ).label("field_goals_attempted"),
+                (
+                    PlayerGameStats.twoPointersMade + PlayerGameStats.threePointersMade
+                ).label("field_goals_made"),
+                PlayerGameStats.freeThrowsAttempted,
+                PlayerGameStats.turnovers,
+                PlayerGameStats.foulsPersonal,
+                PlayerGameStats.IS_WINNER,
+                PlayerGameStats.minutes,
+            )
+            .join(
+                PlayerGameStats, PlayerInformation.player_id == PlayerGameStats.personId
+            )
+            .filter(PlayerGameStats.game_date == target_date)
+            .all()
         )
 
-    return player_data
+        player_data = []
+        for stat in stats:
+            rating = calculate_player_score(
+                three_pointers=stat[4],
+                two_pointers=stat[5],
+                free_throws=stat[6],
+                offensive_rebounds=stat[7],
+                defensive_rebounds=stat[8],
+                assists=stat[9],
+                steals=stat[10],
+                blocks=stat[11],
+                field_goals_attempted=stat[12],
+                field_goals_made=stat[13],
+                free_throws_attempted=stat[14],
+                turnovers=stat[15],
+                personal_fouls=stat[16],
+                team_won=stat[17],
+                minutes_played=stat[18],
+            )
+            player_data.append(
+                {
+                    "id": stat[0],
+                    "name": stat[1],
+                    "salary": stat[2],
+                    "position": stat[3],
+                    "rating": rating,
+                }
+            )
+
+        return player_data
+    finally:
+        db.close()
 
 
-def get_position_map():
+def get_position_map() -> Dict:
     return {
         "Guard": ["PG", "SG"],
         "Guard-Forward": ["SG", "SF"],
@@ -82,7 +95,7 @@ def get_position_map():
     }
 
 
-def solve_roster(players_data):
+def solve_roster(players_data: List[Dict]) -> Optional[Dict]:
     SALARY_CAP = 187895000
     starter_slots = ["PG", "SG", "SF", "PF", "C"]
     position_map = get_position_map()
@@ -172,8 +185,8 @@ def solve_roster(players_data):
     return roster
 
 
-def get_best_lineup(date):
-    players_data = get_player_data(date)
+def get_best_lineup(target_date_str: str) -> Optional[Dict]:
+    players_data = get_player_data(target_date_str)
     if not players_data:
         return None
     return solve_roster(players_data)

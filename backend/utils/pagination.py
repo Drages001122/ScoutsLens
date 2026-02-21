@@ -1,42 +1,36 @@
-from functools import wraps
+from typing import Generic, List, TypeVar
 
-from flask import jsonify, request
+from fastapi import Query
+from pydantic import BaseModel
+
+T = TypeVar("T")
 
 
-def paginated_response(items_key, default_per_page=10):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            page = request.args.get("page", 1, type=int)
-            per_page = request.args.get("per_page", default_per_page, type=int)
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: List[T]
+    pagination: dict
 
-            result = f(*args, **kwargs)
 
-            if isinstance(result, list):
-                items = result
-                response = {}
-            elif isinstance(result, dict):
-                items = result.get(items_key, [])
-                response = {k: v for k, v in result.items() if k != items_key}
-            else:
-                return result
+def get_pagination_params(
+    page: int = Query(1, ge=1, description="页码"),
+    per_page: int = Query(10, ge=1, le=100, description="每页数量"),
+) -> dict:
+    return {"page": page, "per_page": per_page}
 
-            total_items = len(items)
-            total_pages = (total_items + per_page - 1) // per_page
-            start_idx = (page - 1) * per_page
-            end_idx = start_idx + per_page
-            paginated_items = items[start_idx:end_idx]
 
-            response[items_key] = paginated_items
-            response["pagination"] = {
-                "current_page": page,
-                "per_page": per_page,
-                "total_items": total_items,
-                "total_pages": total_pages,
-            }
+def paginate(items: list, page: int, per_page: int, items_key: str = "items") -> dict:
+    total_items = len(items)
+    total_pages = (total_items + per_page - 1) // per_page if per_page > 0 else 0
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paginated_items = items[start_idx:end_idx]
 
-            return jsonify(response)
-
-        return decorated_function
-
-    return decorator
+    return {
+        items_key: paginated_items,
+        "pagination": {
+            "current_page": page,
+            "per_page": per_page,
+            "total_items": total_items,
+            "total_pages": total_pages,
+        },
+    }

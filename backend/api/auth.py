@@ -1,77 +1,137 @@
 import hashlib
 
-from config import db
-from flask import Blueprint, jsonify, request
-from models import User
-from utils.jwt import generate_token, verify_token
+from config import get_db
+from fastapi import APIRouter, Depends, HTTPException, status
+from models import (
+    AuthResponse,
+    ErrorResponse,
+    User,
+    UserCreate,
+    UserLogin,
+    UserResponse,
+)
+from sqlalchemy.orm import Session
+from utils.jwt import generate_token, get_current_user_id
 
-auth_bp = Blueprint("auth", __name__)
+router = APIRouter()
 
 
-@auth_bp.route("/register", methods=["POST"])
-def register():
+@router.post(
+    "/register",
+    response_model=AuthResponse,
+    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+)
+async def register(data: UserCreate, db: Session = Depends(get_db)):
     try:
-        data = request.get_json()
-        username = data.get("username")
-        password = data.get("password")
-        confirm_password = data.get("confirm_password")
-        if not username or not password or not confirm_password:
-            return jsonify({"error": "用户名、密码和确认密码不能为空"}), 400
-        if password != confirm_password:
-            return jsonify({"error": "两次输入的密码不一致"}), 400
-        existing_user = User.query.filter_by(username=username).first()
+        if not data.username or not data.password or not data.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="用户名、密码和确认密码不能为空",
+            )
+        if data.password != data.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="两次输入的密码不一致",
+            )
+        existing_user = db.query(User).filter_by(username=data.username).first()
         if existing_user:
-            return jsonify({"error": "用户名已存在"}), 400
-        hashed_password = hashlib.sha256(password.encode()).hexdigest()
-        new_user = User(username=username, password=hashed_password)
-        db.session.add(new_user)
-        db.session.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="用户名已存在",
+            )
+        hashed_password = hashlib.sha256(data.password.encode()).hexdigest()
+        new_user = User(username=data.username, password=hashed_password)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
         token = generate_token(new_user.id)
-        return (
-            jsonify(
-                {"message": "注册成功", "user": new_user.to_dict(), "token": token}
-            ),
-            201,
+        return AuthResponse(
+            message="注册成功",
+            user=UserResponse(**new_user.to_dict()),
+            token=token,
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
 
 
-@auth_bp.route("/login", methods=["POST"])
-def login():
+@router.post(
+    "/login",
+    response_model=AuthResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
+)
+async def login(data: UserLogin, db: Session = Depends(get_db)):
     try:
-        data = request.get_json()
-        username = data.get("username")
-        password = data.get("password")
-        if not username or not password:
-            return jsonify({"error": "用户名和密码不能为空"}), 400
-        user = User.query.filter_by(username=username).first()
+        if not data.username or not data.password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="用户名和密码不能为空",
+            )
+        user = db.query(User).filter_by(username=data.username).first()
         if not user:
-            return jsonify({"error": "用户名或密码错误"}), 401
-        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="用户名或密码错误",
+            )
+        hashed_password = hashlib.sha256(data.password.encode()).hexdigest()
         if user.password != hashed_password:
-            return jsonify({"error": "用户名或密码错误"}), 401
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="用户名或密码错误",
+            )
         token = generate_token(user.id)
-        return (
-            jsonify({"message": "登录成功", "user": user.to_dict(), "token": token}),
-            200,
+        return AuthResponse(
+            message="登录成功",
+            user=UserResponse(**user.to_dict()),
+            token=token,
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
 
 
-@auth_bp.route("/me", methods=["GET"])
-def get_current_user():
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    responses={
+        401: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
+)
+async def get_current_user(
+    user_id: int = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     try:
-        token = request.headers.get("Authorization", "").replace("Bearer ", "")
-        if not token:
-            return jsonify({"error": "未提供认证令牌"}), 401
-        user_id = verify_token(token)
         if not user_id:
-            return jsonify({"error": "无效的认证令牌"}), 401
-        user = User.query.get(user_id)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="未提供认证令牌",
+            )
+        user = db.query(User).get(user_id)
         if not user:
-            return jsonify({"error": "用户不存在"}), 404
-        return jsonify(user.to_dict()), 200
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="用户不存在",
+            )
+        return UserResponse(**user.to_dict())
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )

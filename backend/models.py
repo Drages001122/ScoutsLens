@@ -1,17 +1,21 @@
 from datetime import datetime
+from typing import List, Optional
 
-from config import db
+from config import Base
+from pydantic import BaseModel, Field
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 
 
-class PlayerInformation(db.Model):
+class PlayerInformation(Base):
     __tablename__ = "player_information"
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    player_id = db.Column(db.Integer, nullable=False)
-    full_name = db.Column(db.String(255), nullable=False)
-    team_name = db.Column(db.String(255), nullable=False)
-    position = db.Column(db.String(10), nullable=False)
-    salary = db.Column(db.Integer, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    player_id = Column(Integer, nullable=False)
+    full_name = Column(String(255), nullable=False)
+    team_name = Column(String(255), nullable=False)
+    position = Column(String(10), nullable=False)
+    salary = Column(Integer, nullable=False)
 
     def to_dict(self):
         return {
@@ -24,13 +28,13 @@ class PlayerInformation(db.Model):
         }
 
 
-class User(db.Model):
+class User(Base):
     __tablename__ = "users"
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String(50), unique=True, nullable=False)
+    password = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     def to_dict(self):
         return {
@@ -40,18 +44,17 @@ class User(db.Model):
         }
 
 
-class Lineup(db.Model):
+class Lineup(Base):
     __tablename__ = "lineups"
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    name = db.Column(db.String(255), nullable=False)
-    date = db.Column(db.Date, nullable=False)
-    total_salary = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String(255), nullable=False)
+    date = Column(Date, nullable=False)
+    total_salary = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.utcnow())
 
-    # 关系
-    players = db.relationship(
+    players = relationship(
         "LineupPlayer", backref="lineup", cascade="all, delete-orphan"
     )
 
@@ -67,18 +70,18 @@ class Lineup(db.Model):
         }
 
 
-class LineupPlayer(db.Model):
+class LineupPlayer(Base):
     __tablename__ = "lineup_players"
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    lineup_id = db.Column(db.Integer, db.ForeignKey("lineups.id"), nullable=False)
-    player_id = db.Column(db.Integer, nullable=False)
-    full_name = db.Column(db.String(255), nullable=False)
-    team_name = db.Column(db.String(255), nullable=False)
-    position = db.Column(db.String(10), nullable=False)
-    salary = db.Column(db.Integer, nullable=False)
-    slot = db.Column(db.String(10), nullable=True)  # 首发位置，替补为None
-    is_starting = db.Column(db.Boolean, nullable=False, default=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    lineup_id = Column(Integer, ForeignKey("lineups.id"), nullable=False)
+    player_id = Column(Integer, nullable=False)
+    full_name = Column(String(255), nullable=False)
+    team_name = Column(String(255), nullable=False)
+    position = Column(String(10), nullable=False)
+    salary = Column(Integer, nullable=False)
+    slot = Column(String(10), nullable=True)
+    is_starting = Column(Boolean, nullable=False, default=False)
 
     def to_dict(self):
         return {
@@ -94,28 +97,28 @@ class LineupPlayer(db.Model):
         }
 
 
-class PlayerGameStats(db.Model):
+class PlayerGameStats(Base):
     __tablename__ = "player_game_stats"
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    personId = db.Column(db.Integer, nullable=False)
-    teamName = db.Column(db.String(255), nullable=False)
-    minutes = db.Column(db.Integer, nullable=False, default=0)
-    threePointersMade = db.Column(db.Integer, nullable=False, default=0)
-    threePointersAttempted = db.Column(db.Integer, nullable=False, default=0)
-    twoPointersMade = db.Column(db.Integer, nullable=False, default=0)
-    twoPointersAttempted = db.Column(db.Integer, nullable=False, default=0)
-    freeThrowsMade = db.Column(db.Integer, nullable=False, default=0)
-    freeThrowsAttempted = db.Column(db.Integer, nullable=False, default=0)
-    reboundsOffensive = db.Column(db.Integer, nullable=False, default=0)
-    reboundsDefensive = db.Column(db.Integer, nullable=False, default=0)
-    assists = db.Column(db.Integer, nullable=False, default=0)
-    steals = db.Column(db.Integer, nullable=False, default=0)
-    blocks = db.Column(db.Integer, nullable=False, default=0)
-    turnovers = db.Column(db.Integer, nullable=False, default=0)
-    foulsPersonal = db.Column(db.Integer, nullable=False, default=0)
-    IS_WINNER = db.Column(db.Boolean, nullable=False, default=False)
-    game_date = db.Column(db.Date, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    personId = Column(Integer, nullable=False)
+    teamName = Column(String(255), nullable=False)
+    minutes = Column(Integer, nullable=False, default=0)
+    threePointersMade = Column(Integer, nullable=False, default=0)
+    threePointersAttempted = Column(Integer, nullable=False, default=0)
+    twoPointersMade = Column(Integer, nullable=False, default=0)
+    twoPointersAttempted = Column(Integer, nullable=False, default=0)
+    freeThrowsMade = Column(Integer, nullable=False, default=0)
+    freeThrowsAttempted = Column(Integer, nullable=False, default=0)
+    reboundsOffensive = Column(Integer, nullable=False, default=0)
+    reboundsDefensive = Column(Integer, nullable=False, default=0)
+    assists = Column(Integer, nullable=False, default=0)
+    steals = Column(Integer, nullable=False, default=0)
+    blocks = Column(Integer, nullable=False, default=0)
+    turnovers = Column(Integer, nullable=False, default=0)
+    foulsPersonal = Column(Integer, nullable=False, default=0)
+    IS_WINNER = Column(Boolean, nullable=False, default=False)
+    game_date = Column(Date, nullable=False)
 
     @property
     def points(self):
@@ -146,3 +149,163 @@ class PlayerGameStats(db.Model):
             "game_date": self.game_date.isoformat() if self.game_date else None,
             "points": self.points,
         }
+
+
+class PlayerInfo(BaseModel):
+    id: Optional[int] = None
+    player_id: int
+    full_name: str
+    team_name: str
+    position: str
+    salary: int
+
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    created_at: Optional[str] = None
+
+
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1)
+    confirm_password: str = Field(..., min_length=1)
+
+
+class UserLogin(BaseModel):
+    username: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=1)
+
+
+class AuthResponse(BaseModel):
+    message: str
+    user: UserResponse
+    token: str
+
+
+class LineupPlayerCreate(BaseModel):
+    player_id: int
+    full_name: str
+    team_name: str
+    position: str
+    salary: int
+    slot: Optional[str] = None
+
+
+class LineupCreate(BaseModel):
+    name: Optional[str] = None
+    date: str
+    starting_players: List[LineupPlayerCreate] = Field(default_factory=list)
+    bench_players: List[LineupPlayerCreate] = Field(default_factory=list)
+
+
+class LineupPlayerResponse(BaseModel):
+    id: int
+    lineup_id: int
+    player_id: int
+    full_name: str
+    team_name: str
+    position: str
+    salary: int
+    slot: Optional[str] = None
+    is_starting: bool
+    rating: Optional[float] = None
+
+
+class LineupResponse(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    date: str
+    total_salary: int
+    created_at: str
+    players: List[LineupPlayerResponse]
+    username: Optional[str] = None
+    can_view: Optional[bool] = None
+    total_rating: Optional[float] = None
+
+
+class TeamResponse(BaseModel):
+    team_id: int
+    team_name: str
+
+
+class Pagination(BaseModel):
+    current_page: int
+    per_page: int
+    total_items: int
+    total_pages: int
+
+
+class PlayerStatsResponse(BaseModel):
+    player_id: int
+    player_name: str
+    team_name: str
+    position: str
+    salary: int
+    minutes: float
+    three_pointers_made: float
+    three_pointers_attempted: float
+    two_pointers_made: float
+    two_pointers_attempted: float
+    free_throws_made: float
+    free_throws_attempted: float
+    offensive_rebounds: float
+    defensive_rebounds: float
+    assists: float
+    steals: float
+    blocks: float
+    turnovers: float
+    personal_fouls: float
+    team_won: bool
+    points: float
+    rating: float
+    games_played: Optional[int] = None
+
+
+class GameStat(BaseModel):
+    game_date: str
+    rating: float
+
+
+class PlayerGameStatsResponse(BaseModel):
+    player_id: int
+    game_stats: List[GameStat]
+
+
+class PlayerAverageStatsResponse(BaseModel):
+    player_id: int
+    games_played: int
+    minutes_per_game: float
+    points_per_game: float
+    rebounds_per_game: float
+    assists_per_game: float
+    steals_per_game: float
+    blocks_per_game: float
+    turnovers_per_game: float
+    field_goal_percentage: float
+    three_point_percentage: float
+    free_throw_percentage: float
+
+
+class ValueForMoneyPlayer(BaseModel):
+    player_id: int
+    player_name: str
+    team_name: str
+    position: str
+    salary: int
+    average_rating: float
+    salary_rank: Optional[int] = None
+    rating_rank: Optional[int] = None
+
+
+class SalaryCapResponse(BaseModel):
+    salary_cap: int
+
+
+class MessageResponse(BaseModel):
+    message: str
+
+
+class ErrorResponse(BaseModel):
+    error: str

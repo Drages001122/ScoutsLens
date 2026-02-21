@@ -1,13 +1,21 @@
-from flask import Blueprint, jsonify
+from fastapi import APIRouter, HTTPException, status
+from models import ErrorResponse, SalaryCapResponse
 
-rule_bp = Blueprint("rule", __name__)
+router = APIRouter()
 
 SALARY_CAP = 187895000
 
 
-@rule_bp.route("/salary_cap", methods=["GET"])
-def get_salary_cap():
+@router.get(
+    "/salary_cap",
+    response_model=SalaryCapResponse,
+    responses={500: {"model": ErrorResponse}},
+)
+async def get_salary_cap():
     try:
-        return jsonify({"salary_cap": SALARY_CAP})
+        return SalaryCapResponse(salary_cap=SALARY_CAP)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )

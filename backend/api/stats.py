@@ -1,21 +1,25 @@
 from collections import defaultdict
 from datetime import date
+from typing import Optional
 
-from flask import Blueprint, jsonify, request
-from models import PlayerGameStats, PlayerInformation
-from utils.pagination import paginated_response
+from config import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from models import ErrorResponse, PlayerGameStats, PlayerInformation
+from sqlalchemy.orm import Session
+from utils.pagination import get_pagination_params, paginate
 from utils.rating import calculate_player_score
 
-stats_bp = Blueprint("stats", __name__)
+router = APIRouter()
 
 
-@stats_bp.route("/average-stats", methods=["GET"])
-@paginated_response(items_key="players", default_per_page=10)
-def get_player_average_stats_leaderboard():
+@router.get("/average-stats")
+async def get_player_average_stats_leaderboard(
+    sort_order: str = Query("desc", description="排序顺序"),
+    pagination: dict = Depends(get_pagination_params),
+    db: Session = Depends(get_db),
+):
     try:
-        sort_order = request.args.get("sort_order", "desc")
-
-        stats = PlayerGameStats.query.all()
+        stats = db.query(PlayerGameStats).all()
 
         player_stats = defaultdict(list)
         for stat in stats:
@@ -89,7 +93,9 @@ def get_player_average_stats_leaderboard():
                 minutes_played=avg_minutes,
             )
 
-            player_info = PlayerInformation.query.filter_by(player_id=player_id).first()
+            player_info = (
+                db.query(PlayerInformation).filter_by(player_id=player_id).first()
+            )
             player_name = (
                 player_info.full_name if player_info else f"Player {player_id}"
             )
@@ -125,29 +131,43 @@ def get_player_average_stats_leaderboard():
             key=lambda x: x["rating"], reverse=(sort_order == "desc")
         )
 
-        return {"players": players_with_score}
+        return paginate(
+            players_with_score, pagination["page"], pagination["per_page"], "players"
+        )
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
 
 
-@stats_bp.route("/game-stats", methods=["GET"])
-@paginated_response(items_key="players", default_per_page=10)
-def get_player_game_stats():
+@router.get("/game-stats")
+async def get_player_game_stats(
+    game_date: str = Query(..., description="比赛日期"),
+    sort_order: str = Query("desc", description="排序顺序"),
+    pagination: dict = Depends(get_pagination_params),
+    db: Session = Depends(get_db),
+):
     try:
-        game_date = request.args.get("game_date")
-        sort_order = request.args.get("sort_order", "desc")
-
         if not game_date:
-            return jsonify({"error": "game_date is required"}), 400
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="game_date is required",
+            )
 
         try:
             game_date_obj = date.fromisoformat(game_date)
         except ValueError:
-            return jsonify({"error": "Invalid date format, use YYYY-MM-DD"}), 400
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid date format, use YYYY-MM-DD",
+            )
 
-        stats = PlayerGameStats.query.filter(
-            PlayerGameStats.game_date == game_date_obj
-        ).all()
+        stats = (
+            db.query(PlayerGameStats)
+            .filter(PlayerGameStats.game_date == game_date_obj)
+            .all()
+        )
 
         players_with_score = []
         for stat in stats:
@@ -170,9 +190,9 @@ def get_player_game_stats():
                 minutes_played=stat.minutes,
             )
 
-            player_info = PlayerInformation.query.filter_by(
-                player_id=stat.personId
-            ).first()
+            player_info = (
+                db.query(PlayerInformation).filter_by(player_id=stat.personId).first()
+            )
             player_name = (
                 player_info.full_name if player_info else f"Player {stat.personId}"
             )
@@ -211,25 +231,36 @@ def get_player_game_stats():
             key=lambda x: x["rating"], reverse=(sort_order == "desc")
         )
 
-        return {"players": players_with_score, "game_date": game_date}
+        result = paginate(
+            players_with_score, pagination["page"], pagination["per_page"], "players"
+        )
+        result["game_date"] = game_date
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
 
 
-@stats_bp.route("/player/<int:player_id>/game-stats", methods=["GET"])
-def get_player_game_stats_by_id(player_id):
+@router.get(
+    "/player/{player_id}/game-stats",
+    response_model=dict,
+    responses={500: {"model": ErrorResponse}},
+)
+async def get_player_game_stats_by_id(player_id: int, db: Session = Depends(get_db)):
     try:
-        # 查询指定球员的所有比赛统计数据
         stats = (
-            PlayerGameStats.query.filter(PlayerGameStats.personId == player_id)
+            db.query(PlayerGameStats)
+            .filter(PlayerGameStats.personId == player_id)
             .order_by(PlayerGameStats.game_date)
             .all()
         )
 
-        # 计算每个比赛的评分
         game_stats = []
         for stat in stats:
-            # 计算评分
             rating = calculate_player_score(
                 three_pointers=stat.threePointersMade,
                 two_pointers=stat.twoPointersMade,
@@ -249,26 +280,37 @@ def get_player_game_stats_by_id(player_id):
                 minutes_played=stat.minutes,
             )
 
-            # 构建比赛数据
             game_data = {
                 "game_date": stat.game_date.isoformat() if stat.game_date else None,
                 "rating": rating,
             }
             game_stats.append(game_data)
 
-        return jsonify({"player_id": player_id, "game_stats": game_stats})
+        return {"player_id": player_id, "game_stats": game_stats}
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
 
 
-@stats_bp.route("/player/<int:player_id>/average-stats", methods=["GET"])
-def get_player_average_stats(player_id):
+@router.get(
+    "/player/{player_id}/average-stats",
+    response_model=dict,
+    responses={404: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+)
+async def get_player_average_stats(player_id: int, db: Session = Depends(get_db)):
     try:
-        stats = PlayerGameStats.query.filter(
-            PlayerGameStats.personId == player_id
-        ).all()
+        stats = (
+            db.query(PlayerGameStats)
+            .filter(PlayerGameStats.personId == player_id)
+            .all()
+        )
         if not stats:
-            return jsonify({"error": "No stats found for this player"}), 404
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No stats found for this player",
+            )
         total_games = len(stats)
 
         total_minutes = sum(stat.minutes for stat in stats)
@@ -327,36 +369,49 @@ def get_player_average_stats(player_id):
             "free_throw_percentage": round(free_throw_percentage, 1),
         }
 
-        return jsonify(average_stats)
+        return average_stats
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
 
 
-@stats_bp.route("/value-for-money", methods=["GET"])
-def get_value_for_money():
+@router.get(
+    "/value-for-money",
+    response_model=dict,
+    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+)
+async def get_value_for_money(
+    game_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
     try:
-        game_date = request.args.get("game_date")
-        players = PlayerInformation.query.all()
+        players = db.query(PlayerInformation).all()
         player_data = []
 
         for player in players:
             if game_date:
-                # 按日期筛选
                 try:
                     game_date_obj = date.fromisoformat(game_date)
                 except ValueError:
-                    return (
-                        jsonify({"error": "Invalid date format, use YYYY-MM-DD"}),
-                        400,
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid date format, use YYYY-MM-DD",
                     )
 
-                stat = PlayerGameStats.query.filter(
-                    PlayerGameStats.personId == player.player_id,
-                    PlayerGameStats.game_date == game_date_obj,
-                ).first()
+                stat = (
+                    db.query(PlayerGameStats)
+                    .filter(
+                        PlayerGameStats.personId == player.player_id,
+                        PlayerGameStats.game_date == game_date_obj,
+                    )
+                    .first()
+                )
 
                 if stat:
-                    # 计算当日评分
                     rating = calculate_player_score(
                         three_pointers=stat.threePointersMade,
                         two_pointers=stat.twoPointersMade,
@@ -383,14 +438,15 @@ def get_value_for_money():
                             "team_name": player.team_name,
                             "position": player.position,
                             "salary": player.salary,
-                            "average_rating": rating,  # 使用当日评分
+                            "average_rating": rating,
                         }
                     )
             else:
-                # 计算平均评分
-                stats = PlayerGameStats.query.filter(
-                    PlayerGameStats.personId == player.player_id
-                ).all()
+                stats = (
+                    db.query(PlayerGameStats)
+                    .filter(PlayerGameStats.personId == player.player_id)
+                    .all()
+                )
 
                 if stats:
                     total_rating = 0
@@ -440,6 +496,11 @@ def get_value_for_money():
 
             player_data.sort(key=lambda x: x["salary"])
 
-        return jsonify({"players": player_data, "game_date": game_date})
+        return {"players": player_data, "game_date": game_date}
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
