@@ -11,7 +11,12 @@ def run_command(command, description):
 
     try:
         result = subprocess.run(
-            command, shell=True, check=True, capture_output=True, text=True, encoding='utf-8'
+            command,
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
         print(result.stdout)
         if result.stderr:
@@ -48,7 +53,7 @@ def build_frontend():
 
 def build_backend():
     print("\n" + "=" * 60)
-    print("检查后端依赖")
+    print("检查后端依赖 (FastAPI版本)")
     print("=" * 60)
 
     backend_dir = os.path.join(os.path.dirname(__file__), "..", "backend")
@@ -64,12 +69,35 @@ def build_backend():
         return False
 
     print(f"✓ 后端依赖文件存在: {requirements_file}")
+
+    with open(requirements_file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+        fastapi_required = ["fastapi", "uvicorn", "pydantic"]
+        missing_packages = []
+
+        for pkg in fastapi_required:
+            if pkg not in content.lower():
+                missing_packages.append(pkg)
+
+        if missing_packages:
+            print(
+                f"⚠ 警告: requirements.txt 中可能缺少以下FastAPI相关包: {', '.join(missing_packages)}"
+            )
+            print("建议添加以下依赖:")
+            print("  fastapi>=0.104.0")
+            print("  uvicorn[standard]>=0.24.0")
+            print("  pydantic>=2.0.0")
+        else:
+            print("✓ FastAPI相关依赖检查通过")
+
+    print("\n✓ 后端依赖检查完成")
     return True
 
 
 def main():
     print("=" * 60)
-    print("ScoutsLens 项目构建脚本")
+    print("ScoutsLens 项目构建脚本 (FastAPI版本)")
     print("=" * 60)
 
     success = True
@@ -83,6 +111,9 @@ def main():
     print("\n" + "=" * 60)
     if success:
         print("✓ 构建成功完成！")
+        print("\n下一步操作:")
+        print("1. 运行部署: python deploy/auto_deploy.py")
+        print("2. 或手动更新: python deploy/update.py")
     else:
         print("✗ 构建失败！")
     print("=" * 60)

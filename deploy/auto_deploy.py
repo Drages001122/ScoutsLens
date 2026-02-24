@@ -127,7 +127,7 @@ class AutoDeployer:
 
         self.ssh = None
         self.scp = None
-        self.logger.info("AutoDeployer 初始化完成", "INIT")
+        self.logger.info("AutoDeployer 初始化完成 (FastAPI版本)", "INIT")
 
     def load_config(self, config_file: str) -> Optional[Dict]:
         config_path = os.path.join(os.path.dirname(__file__), config_file)
@@ -292,6 +292,7 @@ class AutoDeployer:
             f"mkdir -p {self.remote_project_dir}/backend",
             f"mkdir -p {self.remote_project_dir}/database",
             f"mkdir -p {self.remote_project_dir}/logs",
+            f"mkdir -p {self.remote_project_dir}/backups",
         ]
 
         for cmd in commands:
@@ -375,8 +376,8 @@ class AutoDeployer:
             f"mkdir -p {self.remote_project_dir}/frontend/dist", show_output=False
         )
 
-        import tempfile
         import tarfile
+        import tempfile
 
         try:
             self.logger.info("压缩前端文件以加快上传速度", step_id)
@@ -406,9 +407,7 @@ class AutoDeployer:
                 f"tar -xzf /tmp/frontend_dist.tar.gz -C {remote_dist}",
                 show_output=False,
             )
-            self.execute_command(
-                "rm /tmp/frontend_dist.tar.gz", show_output=False
-            )
+            self.execute_command("rm /tmp/frontend_dist.tar.gz", show_output=False)
 
             os.remove(temp_archive)
             self.logger.info("前端文件上传完成", step_id)
@@ -487,7 +486,7 @@ FRONTEND_DOMAINS=http://localhost:5173,http://{public_ip}
             return False
 
     def setup_nginx(self) -> bool:
-        step_id = self.logger.start_step("配置Nginx")
+        step_id = self.logger.start_step("配置Nginx (FastAPI)")
         nginx_config = f"""server {{
     listen 80;
     server_name {self.remote_domain};
@@ -498,10 +497,22 @@ FRONTEND_DOMAINS=http://localhost:5173,http://{public_ip}
     }}
 
     location /api/ {{
-        proxy_pass http://127.0.0.1:5000;
+        proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }}
+
+    location /docs {{
+        proxy_pass http://127.0.0.1:8000/docs;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }}
+
+    location /openapi.json {{
+        proxy_pass http://127.0.0.1:8000/openapi.json;
+        proxy_set_header Host $host;
     }}
 }}
 """
@@ -541,9 +552,9 @@ FRONTEND_DOMAINS=http://localhost:5173,http://{public_ip}
             return False
 
     def setup_systemd_service(self) -> bool:
-        step_id = self.logger.start_step("配置systemd服务")
+        step_id = self.logger.start_step("配置systemd服务 (FastAPI)")
         service_config = f"""[Unit]
-Description=ScoutsLens Backend
+Description=ScoutsLens FastAPI Backend
 After=network.target
 
 [Service]
@@ -551,8 +562,9 @@ User=root
 WorkingDirectory={self.remote_project_dir}/backend
 Environment="PATH={self.remote_project_dir}/backend/venv/bin"
 Environment="PYTHONPATH={self.remote_project_dir}/backend"
-ExecStart={self.remote_project_dir}/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 5000 --workers 4
+ExecStart={self.remote_project_dir}/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 4 --log-level info
 Restart=always
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
@@ -574,7 +586,7 @@ WantedBy=multi-user.target
                 "systemctl daemon-reload",
                 "systemctl enable scoutslens",
                 "systemctl restart scoutslens",
-                "sleep 2",
+                "sleep 3",
                 "systemctl status scoutslens",
             ]
 
@@ -593,17 +605,20 @@ WantedBy=multi-user.target
             return False
 
     def run_health_checks(self) -> bool:
-        step_id = self.logger.start_step("部署后健康检查")
+        step_id = self.logger.start_step("部署后健康检查 (FastAPI)")
 
         health_checks = [
             ("Nginx服务状态", "systemctl is-active nginx"),
-            ("ScoutsLens服务状态", "systemctl is-active scoutslens"),
+            ("FastAPI服务状态", "systemctl is-active scoutslens"),
             (
                 "前端页面访问",
                 f"curl -s -o /dev/null -w '%{{http_code}}' http://{self.remote_domain}/",
             ),
-            ("API健康检查", "curl -s http://localhost:5000/health"),
-            ("端口5000监听", "netstat -tlnp | grep :5000 || ss -tlnp | grep :5000"),
+            (
+                "FastAPI文档访问",
+                "curl -s -o /dev/null -w '%{{http_code}}' http://127.0.0.1:8000/docs",
+            ),
+            ("端口8000监听", "netstat -tlnp | grep :8000 || ss -tlnp | grep :8000"),
         ]
 
         all_passed = True
@@ -612,17 +627,12 @@ WantedBy=multi-user.target
                 command, show_output=False
             )
             if exit_status == 0 and stdout.strip():
-                if (
-                    "200" in stdout
-                    or "active" in stdout.lower()
-                    or "5000" in stdout
-                    or "{" in stdout
-                ):
+                if "200" in stdout or "active" in stdout.lower() or "8000" in stdout:
                     self.logger.info(f"✓ {check_name}: 通过", step_id)
                 else:
                     self.logger.warning(f"? {check_name}: {stdout.strip()}", step_id)
             else:
-                if "端口" in check_name or "ScoutsLens服务状态" in check_name:
+                if "端口" in check_name or "FastAPI服务状态" in check_name:
                     self.logger.warning(f"? {check_name}: 服务可能正在初始化", step_id)
                 else:
                     self.logger.error(f"✗ {check_name}: 失败", step_id)
@@ -637,7 +647,7 @@ WantedBy=multi-user.target
 
     def deploy(self) -> bool:
         self.logger.info("=" * 60)
-        self.logger.info("开始自动化部署 ScoutsLens 项目")
+        self.logger.info("开始自动化部署 ScoutsLens FastAPI 项目")
         self.logger.info("=" * 60)
 
         if not self.connect():
@@ -667,9 +677,10 @@ WantedBy=multi-user.target
             summary = self.logger.generate_summary()
 
             self.logger.info("=" * 60)
-            self.logger.info("✓ 部署成功完成！")
+            self.logger.info("✓ FastAPI部署成功完成！")
             self.logger.info("=" * 60)
             self.logger.info(f"访问地址: http://{self.remote_domain}")
+            self.logger.info(f"FastAPI文档: http://{self.remote_domain}/docs")
             self.logger.info(f"项目目录: {self.remote_project_dir}")
             self.logger.info(f"总耗时: {summary['total_duration_seconds']:.2f}秒")
             self.logger.info(

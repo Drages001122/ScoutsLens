@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from jose import JWTError, jwt
-
 from app.core.config import settings
+from jose import JWTError, jwt
 
 
 def generate_token(user_id: int) -> str:

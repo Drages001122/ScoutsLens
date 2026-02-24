@@ -2,7 +2,6 @@ from datetime import date
 from typing import Dict, List, Optional
 
 import pulp
-
 from config import SessionLocal
 from models import PlayerGameStats, PlayerInformation
 from utils.rating import calculate_player_score

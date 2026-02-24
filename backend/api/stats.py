@@ -2,11 +2,10 @@ from collections import defaultdict
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-
 from config import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from models import ErrorResponse, PlayerGameStats, PlayerInformation
+from sqlalchemy.orm import Session
 from utils.pagination import get_pagination_params, paginate
 from utils.rating import calculate_player_score
 

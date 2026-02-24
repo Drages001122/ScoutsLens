@@ -1,10 +1,9 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-
 from config import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from models import ErrorResponse, PlayerInformation
+from sqlalchemy.orm import Session
 from utils.pagination import get_pagination_params, paginate
 
 router = APIRouter()

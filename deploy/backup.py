@@ -76,7 +76,7 @@ def backup_database():
         return False
 
     print("=" * 60)
-    print("备份 ScoutsLens 数据库")
+    print("备份 ScoutsLens 数据库 (FastAPI版本)")
     print("=" * 60)
     print(f"服务器: {hostname}")
     print(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -111,8 +111,147 @@ def backup_database():
         return False
 
 
+def backup_database_remote():
+    config = load_config()
+    if not config:
+        print("✗ 加载配置文件失败")
+        return False
+
+    hostname = config.get("hostname")
+    username = config.get("username")
+    password = config.get("password")
+    port = config.get("port", 22)
+    remote_project_dir = config.get("remote_project_dir", "/var/www/scoutslens")
+
+    if not all([hostname, username, password]):
+        print("✗ 配置文件缺少必要信息")
+        return False
+
+    print("=" * 60)
+    print("远程备份 ScoutsLens 数据库 (FastAPI版本)")
+    print("=" * 60)
+    print(f"服务器: {hostname}")
+    print(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=" * 60)
+
+    remote_db = f"{remote_project_dir}/database/scoutslens.db"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    remote_backup_dir = f"{remote_project_dir}/backups"
+    remote_backup = f"{remote_backup_dir}/scoutslens_{timestamp}.db"
+
+    print("\n正在创建远程备份...")
+    print(f"源路径: {remote_db}")
+    print(f"备份路径: {remote_backup}")
+
+    exit_status, _, _ = execute_remote_command(
+        hostname, username, password, f"mkdir -p {remote_backup_dir}", port
+    )
+
+    if exit_status != 0:
+        print("✗ 创建备份目录失败")
+        return False
+
+    exit_status, stdout, stderr = execute_remote_command(
+        hostname, username, password, f"cp {remote_db} {remote_backup}", port
+    )
+
+    if exit_status == 0:
+        print(f"✓ 远程数据库备份成功: {remote_backup}")
+
+        exit_status, stdout, stderr = execute_remote_command(
+            hostname, username, password, f"ls -lh {remote_backup}", port
+        )
+        if exit_status == 0:
+            print(stdout)
+
+        print("\n" + "=" * 60)
+        print("✓ 远程备份完成！")
+        print("=" * 60)
+        return True
+    else:
+        print(f"✗ 远程备份失败: {stderr}")
+        return False
+
+
+def cleanup_old_backups(keep_count=10):
+    config = load_config()
+    if not config:
+        print("✗ 加载配置文件失败")
+        return False
+
+    hostname = config.get("hostname")
+    username = config.get("username")
+    password = config.get("password")
+    port = config.get("port", 22)
+    remote_project_dir = config.get("remote_project_dir", "/var/www/scoutslens")
+
+    print("\n" + "=" * 60)
+    print(f"清理旧备份 (保留最近 {keep_count} 个)")
+    print("=" * 60)
+
+    remote_backup_dir = f"{remote_project_dir}/backups"
+
+    exit_status, stdout, stderr = execute_remote_command(
+        hostname,
+        username,
+        password,
+        f"ls -t {remote_backup_dir}/scoutslens_*.db | tail -n +{keep_count + 1}",
+        port,
+    )
+
+    if exit_status == 0 and stdout.strip():
+        old_backups = [
+            line.strip() for line in stdout.strip().split("\n") if line.strip()
+        ]
+
+        if old_backups:
+            print(f"发现 {len(old_backups)} 个旧备份文件:")
+            for backup in old_backups:
+                print(f"  - {backup}")
+
+            for backup in old_backups:
+                exit_status, _, _ = execute_remote_command(
+                    hostname, username, password, f"rm {backup}", port
+                )
+                if exit_status == 0:
+                    print(f"✓ 已删除: {backup}")
+                else:
+                    print(f"✗ 删除失败: {backup}")
+
+            print("✓ 旧备份清理完成")
+    else:
+        print("✓ 没有需要清理的旧备份")
+
+
 def main():
-    success = backup_database()
+    print("\n请选择备份模式:")
+    print("1. 下载到本地备份")
+    print("2. 远程服务器备份")
+    print("3. 同时进行本地和远程备份")
+
+    choice = input("\n请输入选项 (1/2/3): ").strip()
+
+    success = False
+
+    if choice == "1":
+        success = backup_database()
+    elif choice == "2":
+        success = backup_database_remote()
+    elif choice == "3":
+        success1 = backup_database()
+        success2 = backup_database_remote()
+        success = success1 and success2
+    else:
+        print("✗ 无效的选项")
+        sys.exit(1)
+
+    if success:
+        cleanup_choice = input("\n是否清理旧备份? (y/n): ").strip().lower()
+        if cleanup_choice == "y":
+            keep_count = input("保留最近多少个备份? (默认10): ").strip()
+            keep_count = int(keep_count) if keep_count.isdigit() else 10
+            cleanup_old_backups(keep_count)
+
     sys.exit(0 if success else 1)
 
 

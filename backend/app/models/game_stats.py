@@ -1,6 +1,5 @@
-from sqlalchemy import Boolean, Column, Date, Integer, String
-
 from app.db.session import Base
+from sqlalchemy import Boolean, Column, Date, Integer, String
 
 
 class PlayerGameStats(Base):

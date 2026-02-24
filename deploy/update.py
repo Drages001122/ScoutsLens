@@ -3,6 +3,7 @@ import os
 import sys
 import tarfile
 import tempfile
+from datetime import datetime
 
 import paramiko
 from scp import SCPClient
@@ -60,6 +61,51 @@ def upload_file(hostname, username, password, local_path, remote_path, port=22):
         return False
 
 
+def backup_before_update(hostname, username, password, port, remote_project_dir):
+    print("\n" + "=" * 60)
+    print("更新前数据库备份")
+    print("=" * 60)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_dir = f"{remote_project_dir}/backups"
+    remote_db = f"{remote_project_dir}/database/scoutslens.db"
+    backup_file = f"{backup_dir}/scoutslens_update_backup_{timestamp}.db"
+
+    exit_status, _, _ = execute_remote_command(
+        hostname, username, password, f"mkdir -p {backup_dir}", port
+    )
+
+    if exit_status != 0:
+        print("⚠ 创建备份目录失败")
+        return False
+
+    exit_status, _, _ = execute_remote_command(
+        hostname, username, password, f"cp {remote_db} {backup_file}", port
+    )
+
+    if exit_status == 0:
+        print(f"✓ 数据库备份成功: {backup_file}")
+        return True
+    else:
+        print("⚠ 数据库备份失败")
+        return False
+
+
+def check_fastapi_health(hostname, username, password, port):
+    health_check_url = "http://127.0.0.1:8000/docs"
+    exit_status, stdout, stderr = execute_remote_command(
+        hostname,
+        username,
+        password,
+        f"curl -s -o /dev/null -w '%{{http_code}}' {health_check_url}",
+        port,
+    )
+
+    if exit_status == 0 and "200" in stdout:
+        return True
+    return False
+
+
 def update_frontend():
     config = load_config()
     if not config:
@@ -77,9 +123,11 @@ def update_frontend():
         return False
 
     print("=" * 60)
-    print("更新前端文件")
+    print("更新前端文件 (FastAPI版本)")
     print("=" * 60)
     print(f"服务器: {hostname}")
+    print(f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=" * 60)
 
     local_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
     remote_dist = f"{remote_project_dir}/frontend/dist"
@@ -168,7 +216,7 @@ def update_backend():
         return False
 
     print("\n" + "=" * 60)
-    print("更新后端代码")
+    print("更新后端代码 (FastAPI版本)")
     print("=" * 60)
 
     local_backend = os.path.join(os.path.dirname(__file__), "..", "backend")
@@ -272,14 +320,26 @@ def update_backend():
         else:
             print("⚠ 依赖安装可能存在问题")
 
+        print("\n正在重启 FastAPI 服务...")
         exit_status, _, _ = execute_remote_command(
             hostname, username, password, "systemctl restart scoutslens", port
         )
 
         if exit_status == 0:
-            print("✓ 后端服务重启完成")
+            print("✓ FastAPI 服务重启完成")
         else:
-            print("⚠ 后端服务重启可能存在问题")
+            print("⚠ FastAPI 服务重启可能存在问题")
+
+        print("\n等待服务启动...")
+        import time
+
+        time.sleep(3)
+
+        print("\n验证服务健康状态...")
+        if check_fastapi_health(hostname, username, password, port):
+            print("✓ FastAPI 服务健康检查通过")
+        else:
+            print("⚠ FastAPI 服务健康检查失败，请检查日志")
 
         return True
 
@@ -290,8 +350,19 @@ def update_backend():
 
 def main():
     print("=" * 60)
-    print("ScoutsLens 更新脚本")
+    print("ScoutsLens 更新脚本 (FastAPI版本)")
     print("=" * 60)
+
+    config = load_config()
+    if not config:
+        print("✗ 加载配置文件失败")
+        sys.exit(1)
+
+    hostname = config.get("hostname")
+    username = config.get("username")
+    password = config.get("password")
+    port = config.get("port", 22)
+    remote_project_dir = config.get("remote_project_dir", "/var/www/scoutslens")
 
     print("\n请选择要更新的内容:")
     print("1. 仅更新前端")
@@ -301,6 +372,12 @@ def main():
     choice = input("\n请输入选项 (1/2/3): ").strip()
 
     success = True
+
+    backup_success = backup_before_update(
+        hostname, username, password, port, remote_project_dir
+    )
+    if not backup_success:
+        print("⚠ 数据库备份失败，但继续更新...")
 
     if choice == "1":
         if not update_frontend():
@@ -320,8 +397,11 @@ def main():
     print("\n" + "=" * 60)
     if success:
         print("✓ 更新完成！")
+        print(f"\n访问地址: http://{config.get('public_ip', hostname)}")
+        print(f"FastAPI文档: http://{config.get('public_ip', hostname)}:8000/docs")
     else:
         print("✗ 更新失败！")
+        print("\n提示: 可以使用 rollback.py 进行回滚")
     print("=" * 60)
 
     sys.exit(0 if success else 1)

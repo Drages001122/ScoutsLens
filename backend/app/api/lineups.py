@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-
 from app.core.dependencies import get_db, login_required
 from app.exceptions.base import ResourceNotFound, ValidationError
 from app.schemas import ErrorResponse, LineupCreate
 from app.services.lineup_service import LineupService
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 

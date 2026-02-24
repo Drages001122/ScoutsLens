@@ -3,11 +3,10 @@ from abc import ABC, abstractmethod
 from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
-from sqlalchemy.orm import Session
-
 from app.core.logger import logger
 from app.models import Lineup, LineupPlayer, User
 from app.services.optimization_service import get_best_lineup
+from sqlalchemy.orm import Session
 
 
 class Rule(ABC):

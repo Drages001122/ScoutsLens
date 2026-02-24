@@ -1,11 +1,10 @@
 from datetime import datetime
 from typing import List, Optional
 
+from config import Base
 from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
-
-from config import Base
 
 
 class PlayerInformation(Base):

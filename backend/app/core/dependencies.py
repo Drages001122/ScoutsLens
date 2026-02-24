@@ -1,11 +1,10 @@
 from typing import Dict, Generator, Optional
 
+from app.core.security import verify_token
+from app.db.session import SessionLocal
 from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
-
-from app.core.security import verify_token
-from app.db.session import SessionLocal
 
 security = HTTPBearer(auto_error=False)
 

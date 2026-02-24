@@ -1,9 +1,8 @@
 from datetime import datetime
 
+from app.db.session import Base
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
-
-from app.db.session import Base
 
 
 class Lineup(Base):

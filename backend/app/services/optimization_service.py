@@ -2,7 +2,6 @@ from datetime import date
 from typing import Dict, List, Optional
 
 import pulp
-
 from app.db.session import SessionLocal
 from app.models import PlayerGameStats, PlayerInformation
 from app.services.stats_service import calculate_player_score

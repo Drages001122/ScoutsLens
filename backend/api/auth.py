@@ -1,9 +1,7 @@
 import hashlib
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-
 from config import get_db
+from fastapi import APIRouter, Depends, HTTPException, status
 from models import (
     AuthResponse,
     ErrorResponse,
@@ -12,6 +10,7 @@ from models import (
     UserLogin,
     UserResponse,
 )
+from sqlalchemy.orm import Session
 from utils.jwt import generate_token, get_current_user_id
 
 router = APIRouter()

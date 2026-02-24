@@ -1,12 +1,11 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-
 from app.core.dependencies import get_db, get_pagination_params
 from app.exceptions.base import ResourceNotFound, ValidationError
 from app.schemas import ErrorResponse
 from app.services.stats_service import StatsService
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
 
 router = APIRouter()
 

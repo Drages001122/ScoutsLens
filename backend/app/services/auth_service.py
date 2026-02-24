@@ -1,12 +1,11 @@
 import hashlib
 from typing import Optional
 
-from sqlalchemy.orm import Session
-
 from app.core.logger import logger
 from app.core.security import generate_token
 from app.exceptions.base import AuthenticationError, ConflictError, ValidationError
 from app.models import User
+from sqlalchemy.orm import Session
 
 
 class AuthService:

@@ -1,6 +1,3 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
 from app.api.auth import router as auth_router
 from app.api.lineups import router as lineups_router
 from app.api.players import router as players_router
@@ -9,6 +6,8 @@ from app.api.stats import router as stats_router
 from app.core.config import settings
 from app.core.logger import logger
 from app.db.session import init_db
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="ScoutsLens API",
