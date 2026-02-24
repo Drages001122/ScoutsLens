@@ -32,14 +32,51 @@
       </div>
       
       <div class="sort-control">
+        <label for="sort-field">排序字段：</label>
+        <select 
+          id="sort-field" 
+          v-model="sortField" 
+          @change="handleSortChange"
+        >
+          <option value="rating">评分</option>
+          <option value="salary">薪资</option>
+          <option value="minutes">上场时间</option>
+          <option value="points">得分</option>
+          <option value="offensive_rebounds">进攻篮板</option>
+          <option value="defensive_rebounds">防守篮板</option>
+          <option value="assists">助攻</option>
+          <option value="steals">抢断</option>
+          <option value="blocks">盖帽</option>
+          <option value="turnovers">失误</option>
+          <option value="personal_fouls">犯规</option>
+          <option v-if="ratingMode === 'average'" value="games_played">出场次数</option>
+          <optgroup label="三分">
+            <option value="three_pointers_made">三分命中</option>
+            <option value="three_pointers_attempted">三分出手</option>
+            <option value="three_pointers_percentage">三分命中率</option>
+          </optgroup>
+          <optgroup label="两分">
+            <option value="two_pointers_made">两分命中</option>
+            <option value="two_pointers_attempted">两分出手</option>
+            <option value="two_pointers_percentage">两分命中率</option>
+          </optgroup>
+          <optgroup label="罚球">
+            <option value="free_throws_made">罚球命中</option>
+            <option value="free_throws_attempted">罚球出手</option>
+            <option value="free_throws_percentage">罚球命中率</option>
+          </optgroup>
+        </select>
+      </div>
+      
+      <div class="sort-control">
         <label for="sort-order">排序方式：</label>
         <select 
           id="sort-order" 
           v-model="sortOrder" 
           @change="handleSortChange"
         >
-          <option value="desc">评分降序</option>
-          <option value="asc">评分升序</option>
+          <option value="desc">降序</option>
+          <option value="asc">升序</option>
         </select>
       </div>
       
@@ -78,21 +115,21 @@
             <th>球员</th>
             <th>球队</th>
             <th>位置</th>
-            <th>薪资</th>
-            <th>评分</th>
-            <th>上场时间</th>
-            <th>得分</th>
+            <th :class="{ 'sort-active': sortField === 'salary' }">薪资<span v-if="sortField === 'salary'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+            <th :class="{ 'sort-active': sortField === 'rating' }">评分<span v-if="sortField === 'rating'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+            <th :class="{ 'sort-active': sortField === 'minutes' }">上场时间<span v-if="sortField === 'minutes'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+            <th :class="{ 'sort-active': sortField === 'points' }">得分<span v-if="sortField === 'points'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
             <th>三分</th>
             <th>两分</th>
             <th>罚球</th>
-            <th>进攻篮板</th>
-            <th>防守篮板</th>
-            <th>助攻</th>
-            <th>抢断</th>
-            <th>盖帽</th>
-            <th>失误</th>
-            <th>犯规</th>
-            <th v-if="ratingMode === 'average'">出场次数</th>
+            <th :class="{ 'sort-active': sortField === 'offensive_rebounds' }">进攻篮板<span v-if="sortField === 'offensive_rebounds'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+            <th :class="{ 'sort-active': sortField === 'defensive_rebounds' }">防守篮板<span v-if="sortField === 'defensive_rebounds'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+            <th :class="{ 'sort-active': sortField === 'assists' }">助攻<span v-if="sortField === 'assists'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+            <th :class="{ 'sort-active': sortField === 'steals' }">抢断<span v-if="sortField === 'steals'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+            <th :class="{ 'sort-active': sortField === 'blocks' }">盖帽<span v-if="sortField === 'blocks'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+            <th :class="{ 'sort-active': sortField === 'turnovers' }">失误<span v-if="sortField === 'turnovers'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+            <th :class="{ 'sort-active': sortField === 'personal_fouls' }">犯规<span v-if="sortField === 'personal_fouls'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
+            <th v-if="ratingMode === 'average'" :class="{ 'sort-active': sortField === 'games_played' }">出场次数<span v-if="sortField === 'games_played'" class="sort-indicator">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span></th>
             <th v-if="ratingMode === 'single'">球队胜负</th>
           </tr>
         </thead>
@@ -197,6 +234,7 @@ const apiConfig = API_CONFIG;
 // 响应式数据
 const ratingMode = ref('average');
 const selectedDate = ref('');
+const sortField = ref('rating');
 const sortOrder = ref('desc');
 const players = ref([]);
 const loading = ref(false);
@@ -205,9 +243,13 @@ const currentPage = ref(1);
 const perPage = ref(10);
 const totalPages = ref(1);
 const totalItems = ref(0);
-// 球员个人介绍相关状态
 const showPlayerProfile = ref(false);
 const selectedPlayer = ref(null);
+
+const savedSortSettings = {
+  average: { field: 'rating', order: 'desc' },
+  single: { field: 'rating', order: 'desc' }
+};
 
 // 初始化
 onMounted(() => {
@@ -218,7 +260,14 @@ onMounted(() => {
 
 // 切换评分模式
 const switchMode = (mode) => {
+  savedSortSettings[ratingMode.value] = {
+    field: sortField.value,
+    order: sortOrder.value
+  };
   ratingMode.value = mode;
+  const settings = savedSortSettings[mode];
+  sortField.value = settings.field;
+  sortOrder.value = settings.order;
   currentPage.value = 1;
   fetchPlayerStats();
 };
@@ -232,12 +281,12 @@ const fetchPlayerStats = async () => {
     let url;
     
     if (ratingMode.value === 'average') {
-      url = `${apiConfig.ENDPOINTS.STATS}/average-stats?sort_order=${sortOrder.value}&page=${currentPage.value}&per_page=${perPage.value}`;
+      url = `${apiConfig.ENDPOINTS.STATS}/average-stats?sort_by=${sortField.value}&sort_order=${sortOrder.value}&page=${currentPage.value}&per_page=${perPage.value}`;
     } else {
       if (!selectedDate.value) {
         throw new Error('请选择日期');
       }
-      url = `${apiConfig.ENDPOINTS.STATS}/game-stats?game_date=${selectedDate.value}&sort_order=${sortOrder.value}&page=${currentPage.value}&per_page=${perPage.value}`;
+      url = `${apiConfig.ENDPOINTS.STATS}/game-stats?game_date=${selectedDate.value}&sort_by=${sortField.value}&sort_order=${sortOrder.value}&page=${currentPage.value}&per_page=${perPage.value}`;
     }
     
     const response = await fetch(url);
@@ -420,6 +469,7 @@ h2 {
   padding: 15px;
   background-color: #f5f5f5;
   border-radius: 8px;
+  flex-wrap: wrap;
 }
 
 .date-selector, .sort-control, .per-page-control {
@@ -428,11 +478,41 @@ h2 {
   gap: 10px;
 }
 
+.date-selector label, .sort-control label, .per-page-control label {
+  font-weight: 600;
+  color: #555;
+  white-space: nowrap;
+}
+
 input[type="date"], select {
-  padding: 8px;
+  padding: 8px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  background-color: #fff;
+  min-width: 120px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="date"]:hover, select:hover {
+  border-color: #007bff;
+}
+
+input[type="date"]:focus, select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+select optgroup {
+  font-weight: 600;
+  color: #666;
+  background-color: #f8f9fa;
+}
+
+select option {
+  padding: 8px;
 }
 
 .loading, .error, .no-data {
@@ -548,6 +628,18 @@ input[type="date"], select {
   font-size: 14px;
   color: #333;
   font-weight: 500;
+}
+
+.sort-active {
+  background-color: #e3f2fd !important;
+  color: #1976d2 !important;
+  font-weight: 700;
+}
+
+.sort-indicator {
+  margin-left: 4px;
+  font-size: 12px;
+  color: #1976d2;
 }
 
 @media (max-width: 1200px) {

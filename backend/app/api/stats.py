@@ -13,12 +13,13 @@ router = APIRouter()
 @router.get("/average-stats")
 async def get_player_average_stats_leaderboard(
     sort_order: str = Query("desc", description="排序顺序"),
+    sort_by: str = Query("rating", description="排序字段"),
     pagination: dict = Depends(get_pagination_params),
     db: Session = Depends(get_db),
 ):
     try:
         players_with_score = StatsService.get_player_average_stats_leaderboard(
-            db, sort_order=sort_order
+            db, sort_order=sort_order, sort_by=sort_by
         )
 
         def paginate(
@@ -56,12 +57,13 @@ async def get_player_average_stats_leaderboard(
 async def get_player_game_stats(
     game_date: str = Query(..., description="比赛日期"),
     sort_order: str = Query("desc", description="排序顺序"),
+    sort_by: str = Query("rating", description="排序字段"),
     pagination: dict = Depends(get_pagination_params),
     db: Session = Depends(get_db),
 ):
     try:
         players_with_score, game_date_result = StatsService.get_player_game_stats(
-            db, game_date=game_date, sort_order=sort_order
+            db, game_date=game_date, sort_order=sort_order, sort_by=sort_by
         )
 
         def paginate(

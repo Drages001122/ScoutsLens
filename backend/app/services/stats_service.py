@@ -75,6 +75,7 @@ class StatsService:
     def get_player_average_stats_leaderboard(
         db: Session,
         sort_order: str = "desc",
+        sort_by: str = "rating",
     ) -> List[Dict]:
         """
         获取球员平均数据排行榜
@@ -167,6 +168,22 @@ class StatsService:
                 player_info.full_name if player_info else f"Player {player_id}"
             )
 
+            three_point_percentage = (
+                (avg_three_pointers_made / avg_three_pointers_attempted * 100)
+                if avg_three_pointers_attempted > 0
+                else 0
+            )
+            two_point_percentage = (
+                (avg_two_pointers_made / avg_two_pointers_attempted * 100)
+                if avg_two_pointers_attempted > 0
+                else 0
+            )
+            free_throw_percentage = (
+                (avg_free_throws_made / avg_free_throws_attempted * 100)
+                if avg_free_throws_attempted > 0
+                else 0
+            )
+
             player_data = {
                 "player_id": player_id,
                 "player_name": player_name,
@@ -176,10 +193,13 @@ class StatsService:
                 "minutes": avg_minutes,
                 "three_pointers_made": avg_three_pointers_made,
                 "three_pointers_attempted": avg_three_pointers_attempted,
+                "three_pointers_percentage": three_point_percentage,
                 "two_pointers_made": avg_two_pointers_made,
                 "two_pointers_attempted": avg_two_pointers_attempted,
+                "two_pointers_percentage": two_point_percentage,
                 "free_throws_made": avg_free_throws_made,
                 "free_throws_attempted": avg_free_throws_attempted,
+                "free_throws_percentage": free_throw_percentage,
                 "offensive_rebounds": avg_offensive_rebounds,
                 "defensive_rebounds": avg_defensive_rebounds,
                 "assists": avg_assists,
@@ -194,8 +214,17 @@ class StatsService:
             }
             players_with_score.append(player_data)
 
+        valid_sort_fields = {
+            "salary", "minutes", "points", "offensive_rebounds", "defensive_rebounds",
+            "assists", "steals", "blocks", "turnovers", "personal_fouls", "games_played",
+            "three_pointers_made", "three_pointers_attempted", "three_pointers_percentage",
+            "two_pointers_made", "two_pointers_attempted", "two_pointers_percentage",
+            "free_throws_made", "free_throws_attempted", "free_throws_percentage",
+            "rating"
+        }
+        sort_field = sort_by if sort_by in valid_sort_fields else "rating"
         players_with_score.sort(
-            key=lambda x: x["rating"], reverse=(sort_order == "desc")
+            key=lambda x: x[sort_field], reverse=(sort_order == "desc")
         )
         return players_with_score
 
@@ -204,6 +233,7 @@ class StatsService:
         db: Session,
         game_date: str,
         sort_order: str = "desc",
+        sort_by: str = "rating",
     ) -> Tuple[List[Dict], str]:
         """
         获取指定日期的球员比赛数据
@@ -260,6 +290,22 @@ class StatsService:
                 player_info.full_name if player_info else f"Player {stat.personId}"
             )
 
+            three_point_percentage = (
+                (stat.threePointersMade / stat.threePointersAttempted * 100)
+                if stat.threePointersAttempted > 0
+                else 0
+            )
+            two_point_percentage = (
+                (stat.twoPointersMade / stat.twoPointersAttempted * 100)
+                if stat.twoPointersAttempted > 0
+                else 0
+            )
+            free_throw_percentage = (
+                (stat.freeThrowsMade / stat.freeThrowsAttempted * 100)
+                if stat.freeThrowsAttempted > 0
+                else 0
+            )
+
             player_data = {
                 "player_id": stat.personId,
                 "player_name": player_name,
@@ -269,10 +315,13 @@ class StatsService:
                 "minutes": stat.minutes,
                 "three_pointers_made": stat.threePointersMade,
                 "three_pointers_attempted": stat.threePointersAttempted,
+                "three_pointers_percentage": three_point_percentage,
                 "two_pointers_made": stat.twoPointersMade,
                 "two_pointers_attempted": stat.twoPointersAttempted,
+                "two_pointers_percentage": two_point_percentage,
                 "free_throws_made": stat.freeThrowsMade,
                 "free_throws_attempted": stat.freeThrowsAttempted,
+                "free_throws_percentage": free_throw_percentage,
                 "offensive_rebounds": stat.reboundsOffensive,
                 "defensive_rebounds": stat.reboundsDefensive,
                 "assists": stat.assists,
@@ -290,8 +339,17 @@ class StatsService:
             }
             players_with_score.append(player_data)
 
+        valid_sort_fields = {
+            "salary", "minutes", "points", "offensive_rebounds", "defensive_rebounds",
+            "assists", "steals", "blocks", "turnovers", "personal_fouls",
+            "three_pointers_made", "three_pointers_attempted", "three_pointers_percentage",
+            "two_pointers_made", "two_pointers_attempted", "two_pointers_percentage",
+            "free_throws_made", "free_throws_attempted", "free_throws_percentage",
+            "rating"
+        }
+        sort_field = sort_by if sort_by in valid_sort_fields else "rating"
         players_with_score.sort(
-            key=lambda x: x["rating"], reverse=(sort_order == "desc")
+            key=lambda x: x[sort_field], reverse=(sort_order == "desc")
         )
         return players_with_score, game_date
 
