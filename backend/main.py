@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from app.api.auth import router as auth_router
 from app.api.lineups import router as lineups_router
 from app.api.players import router as players_router
@@ -9,10 +11,21 @@ from app.db.session import init_db
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting ScoutsLens API...")
+    init_db()
+    logger.info("Database initialized successfully")
+    yield
+    logger.info("Shutting down ScoutsLens API...")
+
+
 app = FastAPI(
     title="ScoutsLens API",
     description="NBA球探数据分析平台后端API",
     version="2.0.0",
+    lifespan=lifespan,
 )
 
 frontend_domains = settings.frontend_domains
@@ -33,13 +46,6 @@ else:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Starting ScoutsLens API...")
-    init_db()
-    logger.info("Database initialized successfully")
 
 
 @app.get("/", tags=["根路径"])

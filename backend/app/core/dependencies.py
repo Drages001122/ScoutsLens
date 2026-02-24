@@ -67,7 +67,7 @@ async def login_required(
 
 def get_pagination_params(
     page: int = Query(1, ge=1, description="页码"),
-    per_page: int = Query(10, ge=1, le=100, description="每页数量"),
+    per_page: int = Query(10, ge=1, description="每页数量"),
 ) -> Dict:
     """
     获取分页参数

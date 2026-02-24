@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 from typing import Optional
 
 from app.core.dependencies import get_db, login_required
@@ -24,8 +23,8 @@ async def create_lineup(
     try:
         name = data.name
         date_str = data.date
-        starting_players = [p.dict() for p in data.starting_players]
-        bench_players = [p.dict() for p in data.bench_players]
+        starting_players = [p.model_dump() for p in data.starting_players]
+        bench_players = [p.model_dump() for p in data.bench_players]
 
         new_lineup = LineupService.create_lineup(
             db,
