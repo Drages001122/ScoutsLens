@@ -173,39 +173,16 @@
       </table>
       
       <!-- 翻页控件 -->
-      <div class="pagination" v-if="totalPages > 1">
-        <button 
-          class="pagination-btn" 
-          @click="goToFirstPage" 
-          :disabled="currentPage === 1"
-        >
-          首页
-        </button>
-        <button 
-          class="pagination-btn" 
-          @click="goToPreviousPage" 
-          :disabled="currentPage === 1"
-        >
-          上一页
-        </button>
-        <span class="page-info">
-          第 {{ currentPage }} / {{ totalPages }} 页 (共 {{ totalItems }} 条)
-        </span>
-        <button 
-          class="pagination-btn" 
-          @click="goToNextPage" 
-          :disabled="currentPage === totalPages"
-        >
-          下一页
-        </button>
-        <button 
-          class="pagination-btn" 
-          @click="goToLastPage" 
-          :disabled="currentPage === totalPages"
-        >
-          末页
-        </button>
-      </div>
+      <Pagination
+        v-if="totalPages > 0"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-items="totalItems"
+        :per-page="perPage"
+        :per-page-options="[10, 15, 20, 25, 50]"
+        @page-change="handlePageChange"
+        @per-page-change="handlePerPageChange"
+      />
     </div>
     
     <!-- 无数据提示 -->
@@ -228,6 +205,7 @@ import API_CONFIG from '../config/api.js';
 import translations from '../data/translations.json';
 import { translatePosition } from '../utils/translation';
 import PlayerProfile from '../components/PlayerProfile.vue';
+import Pagination from '../components/Pagination.vue';
 
 const apiConfig = API_CONFIG;
 
@@ -320,7 +298,13 @@ const handleSortChange = () => {
   fetchPlayerStats();
 };
 
-const handlePerPageChange = () => {
+const handlePageChange = (page) => {
+  currentPage.value = page;
+  fetchPlayerStats();
+};
+
+const handlePerPageChange = (newPerPage) => {
+  perPage.value = newPerPage;
   currentPage.value = 1;
   fetchPlayerStats();
 };
@@ -350,37 +334,6 @@ const formatShootingStats = (made, attempted) => {
     return `${made.toFixed(1)}/${attempted.toFixed(1)}`;
   }
   return `${Math.round(made)}/${Math.round(attempted)}`;
-};
-
-// 翻页函数
-const goToPage = (page) => {
-  if (page < 1 || page > totalPages.value) return;
-  currentPage.value = page;
-  fetchPlayerStats();
-};
-
-const goToFirstPage = () => {
-  currentPage.value = 1;
-  fetchPlayerStats();
-};
-
-const goToLastPage = () => {
-  currentPage.value = totalPages.value;
-  fetchPlayerStats();
-};
-
-const goToPreviousPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-    fetchPlayerStats();
-  }
-};
-
-const goToNextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++;
-    fetchPlayerStats();
-  }
 };
 
 // 打开球员个人介绍弹窗

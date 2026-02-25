@@ -131,51 +131,16 @@
     </div>
     
     <!-- 分页控件 -->
-    <div class="pagination" v-if="pagination">
-      <div class="per-page-selector">
-        <label>每页数量：</label>
-        <select v-model="perPage" @change="handlePerPageChange">
-          <option value="10">10</option>
-          <option value="15">15</option>
-          <option value="20">20</option>
-          <option value="25">25</option>
-          <option value="50">50</option>
-        </select>
-      </div>
-      <button 
-        class="page-btn" 
-        :disabled="currentPage === 1"
-        @click="changePage(1)"
-      >
-        首页
-      </button>
-      <button 
-        class="page-btn" 
-        :disabled="currentPage === 1"
-        @click="changePage(currentPage - 1)"
-      >
-        上一页
-      </button>
-      
-      <span class="page-info">
-        第 {{ currentPage }} 页，共 {{ pagination.total_pages }} 页
-      </span>
-      
-      <button 
-        class="page-btn" 
-        :disabled="currentPage === pagination.total_pages"
-        @click="changePage(currentPage + 1)"
-      >
-        下一页
-      </button>
-      <button 
-        class="page-btn" 
-        :disabled="currentPage === pagination.total_pages"
-        @click="changePage(pagination.total_pages)"
-      >
-        末页
-      </button>
-    </div>
+    <Pagination
+      v-if="pagination"
+      :current-page="currentPage"
+      :total-pages="pagination.total_pages"
+      :total-items="pagination.total_items"
+      :per-page="perPage"
+      :per-page-options="[10, 15, 20, 25, 50]"
+      @page-change="handlePageChange"
+      @per-page-change="handlePerPageChange"
+    />
     
     <!-- 球员个人介绍弹窗 -->
     <PlayerProfile 
@@ -192,6 +157,7 @@ import API_CONFIG from '../config/api'
 import { translateTeam, translatePosition } from '../utils/translation'
 import translations from '../data/translations.json'
 import PlayerProfile from './PlayerProfile.vue'
+import Pagination from './Pagination.vue'
 
 // Props
 const props = defineProps({
@@ -299,16 +265,14 @@ const fetchPlayers = async (page = 1) => {
   }
 }
 
-// 分页函数
-const changePage = (page) => {
+const handlePageChange = (page) => {
   if (page >= 1 && (!pagination.value || page <= pagination.value.total_pages)) {
     fetchPlayers(page)
   }
 }
 
-// 处理每页数量变化
-const handlePerPageChange = () => {
-  // 当每页数量变化时，重置到第一页
+const handlePerPageChange = (newPerPage) => {
+  perPage.value = newPerPage
   currentPage.value = 1
   fetchPlayers(1)
 }

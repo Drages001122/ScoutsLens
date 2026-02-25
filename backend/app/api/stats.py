@@ -4,6 +4,7 @@ from app.core.dependencies import get_db, get_pagination_params
 from app.exceptions.base import ResourceNotFound, ValidationError
 from app.schemas import ErrorResponse
 from app.services.stats_service import StatsService
+from app.utils.pagination import paginate_with_metadata
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
@@ -22,29 +23,11 @@ async def get_player_average_stats_leaderboard(
             db, sort_order=sort_order, sort_by=sort_by
         )
 
-        def paginate(
-            items: list, page: int, per_page: int, items_key: str = "items"
-        ) -> dict:
-            total_items = len(items)
-            total_pages = (
-                (total_items + per_page - 1) // per_page if per_page > 0 else 0
-            )
-            start_idx = (page - 1) * per_page
-            end_idx = start_idx + per_page
-            paginated_items = items[start_idx:end_idx]
-
-            return {
-                items_key: paginated_items,
-                "pagination": {
-                    "current_page": page,
-                    "per_page": per_page,
-                    "total_items": total_items,
-                    "total_pages": total_pages,
-                },
-            }
-
-        return paginate(
-            players_with_score, pagination["page"], pagination["per_page"], "players"
+        return paginate_with_metadata(
+            players_with_score,
+            pagination["page"],
+            pagination["per_page"],
+            "players",
         )
     except Exception as e:
         raise HTTPException(
@@ -66,32 +49,13 @@ async def get_player_game_stats(
             db, game_date=game_date, sort_order=sort_order, sort_by=sort_by
         )
 
-        def paginate(
-            items: list, page: int, per_page: int, items_key: str = "items"
-        ) -> dict:
-            total_items = len(items)
-            total_pages = (
-                (total_items + per_page - 1) // per_page if per_page > 0 else 0
-            )
-            start_idx = (page - 1) * per_page
-            end_idx = start_idx + per_page
-            paginated_items = items[start_idx:end_idx]
-
-            return {
-                items_key: paginated_items,
-                "pagination": {
-                    "current_page": page,
-                    "per_page": per_page,
-                    "total_items": total_items,
-                    "total_pages": total_pages,
-                },
-            }
-
-        result = paginate(
-            players_with_score, pagination["page"], pagination["per_page"], "players"
+        return paginate_with_metadata(
+            players_with_score,
+            pagination["page"],
+            pagination["per_page"],
+            "players",
+            game_date=game_date_result,
         )
-        result["game_date"] = game_date_result
-        return result
     except ValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

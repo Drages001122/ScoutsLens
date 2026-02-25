@@ -4,6 +4,7 @@ from app.core.dependencies import get_db, get_pagination_params
 from app.exceptions.base import ValidationError
 from app.schemas import ErrorResponse
 from app.services.player_service import PlayerService
+from app.utils.pagination import paginate
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
@@ -22,27 +23,6 @@ async def get_players(
         players = PlayerService.get_players(
             db, salary_min=salary_min, salary_max=salary_max, teams=teams
         )
-
-        def paginate(
-            items: list, page: int, per_page: int, items_key: str = "items"
-        ) -> dict:
-            total_items = len(items)
-            total_pages = (
-                (total_items + per_page - 1) // per_page if per_page > 0 else 0
-            )
-            start_idx = (page - 1) * per_page
-            end_idx = start_idx + per_page
-            paginated_items = items[start_idx:end_idx]
-
-            return {
-                items_key: paginated_items,
-                "pagination": {
-                    "current_page": page,
-                    "per_page": per_page,
-                    "total_items": total_items,
-                    "total_pages": total_pages,
-                },
-            }
 
         return paginate(players, pagination["page"], pagination["per_page"], "players")
     except Exception as e:
