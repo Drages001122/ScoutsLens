@@ -78,6 +78,7 @@ class StatsService:
         db: Session,
         sort_order: str = "desc",
         sort_by: str = "rating",
+        teams: Optional[List[str]] = None,
     ) -> List[Dict]:
         """
         获取球员平均数据排行榜
@@ -85,6 +86,7 @@ class StatsService:
         Args:
             db: 数据库会话
             sort_order: 排序顺序
+            teams: 球队列表，用于筛选
 
         Returns:
             球员排行榜列表
@@ -186,10 +188,16 @@ class StatsService:
                 else 0
             )
 
+            team_name = stat_list[0].teamName if stat_list else ""
+            
+            # 球队筛选
+            if teams and team_name not in teams:
+                continue
+
             player_data = {
                 "player_id": player_id,
                 "player_name": player_name,
-                "team_name": stat_list[0].teamName if stat_list else "",
+                "team_name": team_name,
                 "position": player_info.position if player_info else "",
                 "salary": player_info.salary if player_info else 0,
                 "minutes": avg_minutes,
@@ -251,6 +259,7 @@ class StatsService:
         game_date: str,
         sort_order: str = "desc",
         sort_by: str = "rating",
+        teams: Optional[List[str]] = None,
     ) -> Tuple[List[Dict], str]:
         """
         获取指定日期的球员比赛数据
@@ -259,6 +268,7 @@ class StatsService:
             db: 数据库会话
             game_date: 比赛日期
             sort_order: 排序顺序
+            teams: 球队列表，用于筛选
 
         Returns:
             (球员数据列表, 日期字符串)
@@ -266,6 +276,7 @@ class StatsService:
         Raises:
             ValidationError: 日期格式无效
         """
+
         try:
             game_date_obj = date.fromisoformat(game_date)
         except ValueError:
@@ -322,6 +333,10 @@ class StatsService:
                 if stat.freeThrowsAttempted > 0
                 else 0
             )
+
+            # 球队筛选
+            if teams and stat.teamName not in teams:
+                continue
 
             player_data = {
                 "player_id": stat.personId,

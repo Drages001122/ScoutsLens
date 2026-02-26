@@ -31,6 +31,23 @@
         />
       </div>
       
+      <!-- 球队筛选 -->
+      <div class="team-filter">
+        <label>球队筛选：</label>
+        <div class="team-selector">
+          <div class="selected-teams" v-if="selectedTeams.length > 0">
+            <span class="team-tag" v-for="team in selectedTeams" :key="team">
+              {{ translateTeam(team) }}
+              <button class="remove-team-btn" @click="removeTeam(team)">&times;</button>
+            </span>
+          </div>
+          <div class="team-actions">
+            <button class="team-btn" @click="toggleTeamModal">{{ selectedTeams.length > 0 ? `已选择 ${selectedTeams.length} 支球队` : '选择球队' }}</button>
+            <button v-if="selectedTeams.length > 0" class="clear-btn" @click="clearTeams">清空</button>
+          </div>
+        </div>
+      </div>
+      
       <div class="sort-control">
         <label for="sort-field">排序字段：</label>
         <select 
@@ -92,6 +109,36 @@
           <option value="50">50</option>
           <option value="100">100</option>
         </select>
+      </div>
+    </div>
+    
+    <!-- 球队选择弹窗 -->
+    <div class="modal-overlay" v-if="showTeamModal" @click="toggleTeamModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>选择球队</h3>
+          <button class="close-btn" @click="toggleTeamModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-actions">
+            <button class="modal-btn select-all-btn" @click="selectAllTeams">{{ selectedTeams.length === teams.length ? '取消全选' : '全选' }}</button>
+            <button class="modal-btn clear-btn" @click="clearTeams">清空</button>
+          </div>
+          <div class="team-grid">
+            <div 
+              v-for="team in teams" 
+              :key="team" 
+              class="team-item"
+              :class="{ selected: selectedTeams.includes(team) }"
+              @click="toggleTeam(team)"
+            >
+              <span class="team-name">{{ translateTeam(team) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn confirm-btn" @click="confirmTeamSelection">确认选择</button>
+        </div>
       </div>
     </div>
     
@@ -224,6 +271,11 @@ const totalItems = ref(0);
 const showPlayerProfile = ref(false);
 const selectedPlayer = ref(null);
 
+// 球队筛选相关数据
+const teams = ref(Object.keys(translations.teams));
+const selectedTeams = ref([]);
+const showTeamModal = ref(false);
+
 const savedSortSettings = {
   average: { field: 'rating', order: 'desc' },
   single: { field: 'rating', order: 'desc' }
@@ -235,6 +287,11 @@ onMounted(() => {
   selectedDate.value = today;
   fetchPlayerStats();
 });
+
+// 翻译球队名称
+const translateTeam = (teamEN) => {
+  return translations.teams[teamEN] || teamEN;
+};
 
 // 切换评分模式
 const switchMode = (mode) => {
@@ -257,14 +314,27 @@ const fetchPlayerStats = async () => {
   
   try {
     let url;
+    let params = new URLSearchParams();
+    
+    // 添加通用参数
+    params.append('sort_by', sortField.value);
+    params.append('sort_order', sortOrder.value);
+    params.append('page', currentPage.value);
+    params.append('per_page', perPage.value);
+    
+    // 添加球队筛选参数
+    selectedTeams.value.forEach(team => {
+      params.append('teams', team);
+    });
     
     if (ratingMode.value === 'average') {
-      url = `${apiConfig.ENDPOINTS.STATS}/average-stats?sort_by=${sortField.value}&sort_order=${sortOrder.value}&page=${currentPage.value}&per_page=${perPage.value}`;
+      url = `${apiConfig.ENDPOINTS.STATS}/average-stats?${params.toString()}`;
     } else {
       if (!selectedDate.value) {
         throw new Error('请选择日期');
       }
-      url = `${apiConfig.ENDPOINTS.STATS}/game-stats?game_date=${selectedDate.value}&sort_by=${sortField.value}&sort_order=${sortOrder.value}&page=${currentPage.value}&per_page=${perPage.value}`;
+      params.append('game_date', selectedDate.value);
+      url = `${apiConfig.ENDPOINTS.STATS}/game-stats?${params.toString()}`;
     }
     
     const response = await fetch(url);
@@ -350,6 +420,52 @@ const closePlayerProfile = () => {
   showPlayerProfile.value = false;
   selectedPlayer.value = null;
 };
+
+// 切换球队选择弹窗
+const toggleTeamModal = () => {
+  showTeamModal.value = !showTeamModal.value;
+};
+
+// 切换球队选中状态
+const toggleTeam = (team) => {
+  const index = selectedTeams.value.indexOf(team);
+  if (index > -1) {
+    selectedTeams.value.splice(index, 1);
+  } else {
+    selectedTeams.value.push(team);
+  }
+};
+
+// 全选/取消全选球队
+const selectAllTeams = () => {
+  if (selectedTeams.value.length === teams.value.length) {
+    // 取消全选
+    selectedTeams.value = [];
+  } else {
+    // 全选
+    selectedTeams.value = [...teams.value];
+  }
+};
+
+// 清空所有选中球队
+const clearTeams = () => {
+  selectedTeams.value = [];
+};
+
+// 移除单个选中球队
+const removeTeam = (team) => {
+  selectedTeams.value = selectedTeams.value.filter(t => t !== team);
+  // 重新获取数据
+  currentPage.value = 1;
+  fetchPlayerStats();
+};
+
+// 确认球队选择并关闭弹窗
+const confirmTeamSelection = () => {
+  currentPage.value = 1;
+  fetchPlayerStats();
+  toggleTeamModal();
+};
 </script>
 
 <style scoped>
@@ -425,13 +541,14 @@ h2 {
   flex-wrap: wrap;
 }
 
-.date-selector, .sort-control, .per-page-control {
+.date-selector, .sort-control, .per-page-control, .team-filter {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
-.date-selector label, .sort-control label, .per-page-control label {
+.date-selector label, .sort-control label, .per-page-control label, .team-filter label {
   font-weight: 600;
   color: #555;
   white-space: nowrap;
@@ -466,6 +583,265 @@ select optgroup {
 
 select option {
   padding: 8px;
+}
+
+/* 球队筛选样式 */
+.team-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 200px;
+}
+
+.selected-teams {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.team-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background-color: #007bff;
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.remove-team-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.remove-team-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.team-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.team-btn, .clear-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.team-btn {
+  background-color: #fff;
+}
+
+.team-btn:hover {
+  background-color: #007bff;
+  color: #fff;
+  border-color: #007bff;
+}
+
+.clear-btn {
+  background-color: #fff;
+  color: #6c757d;
+}
+
+.clear-btn:hover {
+  background-color: #dc3545;
+  color: #fff;
+  border-color: #dc3545;
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #fff;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background-color: #e9ecef;
+}
+
+.modal-body {
+  padding: 20px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.modal-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.select-all-btn {
+  background-color: #28a745;
+  color: #fff;
+  border-color: #28a745;
+}
+
+.select-all-btn:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  border-top: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+}
+
+.confirm-btn {
+  background-color: #007bff;
+  color: #fff;
+  border-color: #007bff;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.confirm-btn:hover {
+  background-color: #0069d9;
+  border-color: #0062cc;
+}
+
+/* 球队网格样式 */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+.team-item {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  background-color: #f8f9fa;
+}
+
+.team-item:hover {
+  border-color: #007bff;
+  background-color: #e3f2fd;
+  transform: translateY(-2px);
+}
+
+.team-item.selected {
+  border-color: #007bff;
+  background-color: #007bff;
+  color: white;
+}
+
+.team-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .control-panel {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .team-selector {
+    width: 100%;
+  }
+  
+  .team-actions {
+    width: 100%;
+  }
+  
+  .team-btn, .clear-btn {
+    flex: 1;
+  }
+  
+  .team-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  }
+  
+  .team-item {
+    padding: 10px;
+  }
+  
+  .team-name {
+    font-size: 12px;
+  }
 }
 
 .loading, .error, .no-data {

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from app.core.cache import cache_manager
 from app.core.dependencies import get_db, get_pagination_params
@@ -16,12 +16,13 @@ router = APIRouter()
 async def get_player_average_stats_leaderboard(
     sort_order: str = Query("desc", description="排序顺序"),
     sort_by: str = Query("rating", description="排序字段"),
+    teams: List[str] = Query(None, description="球队列表"),
     pagination: dict = Depends(get_pagination_params),
     db: Session = Depends(get_db),
 ):
     try:
         players_with_score = StatsService.get_player_average_stats_leaderboard(
-            db, sort_order=sort_order, sort_by=sort_by
+            db, sort_order=sort_order, sort_by=sort_by, teams=teams
         )
 
         return paginate_with_metadata(
@@ -42,12 +43,13 @@ async def get_player_game_stats(
     game_date: str = Query(..., description="比赛日期"),
     sort_order: str = Query("desc", description="排序顺序"),
     sort_by: str = Query("rating", description="排序字段"),
+    teams: List[str] = Query(None, description="球队列表"),
     pagination: dict = Depends(get_pagination_params),
     db: Session = Depends(get_db),
 ):
     try:
         players_with_score, game_date_result = StatsService.get_player_game_stats(
-            db, game_date=game_date, sort_order=sort_order, sort_by=sort_by
+            db, game_date=game_date, sort_order=sort_order, sort_by=sort_by, teams=teams
         )
 
         return paginate_with_metadata(
