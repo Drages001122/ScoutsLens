@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import date
 from typing import Dict, List, Optional, Tuple
 
+from app.core.cache import cache_manager, cached
 from app.models import PlayerGameStats, PlayerInformation
 from sqlalchemy.orm import Session
 
@@ -72,6 +73,7 @@ class StatsService:
     """统计服务"""
 
     @staticmethod
+    @cached(ttl=300, cache_manager=cache_manager)
     def get_player_average_stats_leaderboard(
         db: Session,
         sort_order: str = "desc",
@@ -215,12 +217,27 @@ class StatsService:
             players_with_score.append(player_data)
 
         valid_sort_fields = {
-            "salary", "minutes", "points", "offensive_rebounds", "defensive_rebounds",
-            "assists", "steals", "blocks", "turnovers", "personal_fouls", "games_played",
-            "three_pointers_made", "three_pointers_attempted", "three_pointers_percentage",
-            "two_pointers_made", "two_pointers_attempted", "two_pointers_percentage",
-            "free_throws_made", "free_throws_attempted", "free_throws_percentage",
-            "rating"
+            "salary",
+            "minutes",
+            "points",
+            "offensive_rebounds",
+            "defensive_rebounds",
+            "assists",
+            "steals",
+            "blocks",
+            "turnovers",
+            "personal_fouls",
+            "games_played",
+            "three_pointers_made",
+            "three_pointers_attempted",
+            "three_pointers_percentage",
+            "two_pointers_made",
+            "two_pointers_attempted",
+            "two_pointers_percentage",
+            "free_throws_made",
+            "free_throws_attempted",
+            "free_throws_percentage",
+            "rating",
         }
         sort_field = sort_by if sort_by in valid_sort_fields else "rating"
         players_with_score.sort(
@@ -340,12 +357,26 @@ class StatsService:
             players_with_score.append(player_data)
 
         valid_sort_fields = {
-            "salary", "minutes", "points", "offensive_rebounds", "defensive_rebounds",
-            "assists", "steals", "blocks", "turnovers", "personal_fouls",
-            "three_pointers_made", "three_pointers_attempted", "three_pointers_percentage",
-            "two_pointers_made", "two_pointers_attempted", "two_pointers_percentage",
-            "free_throws_made", "free_throws_attempted", "free_throws_percentage",
-            "rating"
+            "salary",
+            "minutes",
+            "points",
+            "offensive_rebounds",
+            "defensive_rebounds",
+            "assists",
+            "steals",
+            "blocks",
+            "turnovers",
+            "personal_fouls",
+            "three_pointers_made",
+            "three_pointers_attempted",
+            "three_pointers_percentage",
+            "two_pointers_made",
+            "two_pointers_attempted",
+            "two_pointers_percentage",
+            "free_throws_made",
+            "free_throws_attempted",
+            "free_throws_percentage",
+            "rating",
         }
         sort_field = sort_by if sort_by in valid_sort_fields else "rating"
         players_with_score.sort(
@@ -493,6 +524,7 @@ class StatsService:
         return average_stats
 
     @staticmethod
+    @cached(ttl=300, cache_manager=cache_manager)
     def get_value_for_money(
         db: Session,
         game_date: Optional[str] = None,

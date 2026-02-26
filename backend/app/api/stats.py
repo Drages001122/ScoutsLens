@@ -1,5 +1,6 @@
 from typing import Optional
 
+from app.core.cache import cache_manager
 from app.core.dependencies import get_db, get_pagination_params
 from app.exceptions.base import ResourceNotFound, ValidationError
 from app.schemas import ErrorResponse
@@ -128,4 +129,22 @@ async def get_value_for_money(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
+        )
+
+
+@router.post("/cache/clear")
+async def clear_cache():
+    """
+    清除所有统计数据缓存
+
+    Returns:
+        操作结果
+    """
+    try:
+        cache_manager.clear()
+        return {"message": "缓存已清除", "status": "success"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"清除缓存失败: {str(e)}",
         )
