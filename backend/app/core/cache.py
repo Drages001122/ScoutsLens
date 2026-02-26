@@ -1,8 +1,7 @@
+import hashlib
+import time
 from functools import wraps
 from typing import Any, Callable, Dict, Optional, Tuple
-import hashlib
-import json
-import time
 
 
 class CacheManager:
@@ -31,16 +30,16 @@ class CacheManager:
             缓存键
         """
         key_parts = [func_name]
-        
+
         for arg in args:
-            if hasattr(arg, '__class__'):
+            if hasattr(arg, "__class__"):
                 key_parts.append(f"{arg.__class__.__name__}")
             else:
                 key_parts.append(str(arg))
-        
+
         for k, v in sorted(kwargs.items()):
             key_parts.append(f"{k}:{v}")
-        
+
         key_str = "|".join(key_parts)
         return hashlib.md5(key_str.encode()).hexdigest()
 
@@ -102,7 +101,8 @@ class CacheManager:
         """
         current_time = time.time()
         expired_keys = [
-            key for key, (_, expiry_time) in self._cache.items()
+            key
+            for key, (_, expiry_time) in self._cache.items()
             if current_time >= expiry_time
         ]
         for key in expired_keys:
@@ -129,16 +129,17 @@ def cached(ttl: int = 300, cache_manager: Optional[CacheManager] = None):
         def wrapper(*args, **kwargs):
             func_name = func.__name__
             cache_key = cache_manager._generate_key(func_name, *args, **kwargs)
-            
+
             cached_result = cache_manager.get(cache_key)
             if cached_result is not None:
                 return cached_result
-            
+
             result = func(*args, **kwargs)
             cache_manager.set(cache_key, result, ttl)
             return result
 
         return wrapper
+
     return decorator
 
 
