@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date
 from typing import Dict, List, Optional, Tuple
 
-from app.core.cache import cache_manager, cached
+
 from app.models import PlayerGameStats, PlayerInformation
 from sqlalchemy.orm import Session
 
@@ -73,7 +73,6 @@ class StatsService:
     """统计服务"""
 
     @staticmethod
-    @cached(ttl=300, cache_manager=cache_manager)
     def get_player_average_stats_leaderboard(
         db: Session,
         sort_order: str = "desc",
@@ -539,7 +538,6 @@ class StatsService:
         return average_stats
 
     @staticmethod
-    @cached(ttl=300, cache_manager=cache_manager)
     def get_value_for_money(
         db: Session,
         game_date: Optional[str] = None,
